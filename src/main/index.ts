@@ -1,6 +1,8 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { initLogger, mainLog } from './logger'
 import { createTray } from './tray'
+import { listToolSummaries } from './tool-registry'
+import { IPC } from '@shared/types/ipc'
 
 initLogger()
 
@@ -10,17 +12,22 @@ if (!gotLock) {
   process.exit(0)
 }
 
+function registerAppIpc(): void {
+  ipcMain.handle(IPC.ToolList, () => listToolSummaries())
+  ipcMain.handle(IPC.GetVersion, () => app.getVersion())
+  ipcMain.handle(IPC.OpenLogsFolder, () => shell.openPath(app.getPath('logs')))
+}
+
 app.whenReady().then(async () => {
-  // macOS 隐藏 Dock 图标（菜单栏应用）
   if (process.platform === 'darwin') {
     app.dock?.hide()
   }
+  registerAppIpc()
   createTray()
   mainLog.info('app ready, tray created')
 })
 
 app.on('window-all-closed', () => {
-  // macOS 菜单栏应用：所有窗口关闭也不退出。仅注册监听器即可阻止默认 quit 行为。
   if (process.platform !== 'darwin') {
     app.quit()
   }
