@@ -5,6 +5,7 @@ import { useEditorStore } from './state/store'
 import { newLayerId, type Rect } from './layers/types'
 import './layers/rect'
 import './layers/ellipse'
+import './layers/arrow'
 
 interface InitPayload {
   imagePath: string
@@ -53,6 +54,23 @@ export function Editor() {
               strokeWidth: state.style.strokeWidth,
             }
       dispatch({ type: 'ADD_LAYER', layer: baseLayer })
+      return
+    }
+    if (state.activeTool === 'arrow') {
+      const id = newLayerId()
+      dragRef.current = { startX: x, startY: y, tempId: id }
+      dispatch({
+        type: 'ADD_LAYER',
+        layer: {
+          id,
+          type: 'arrow',
+          from: { x, y },
+          to: { x, y },
+          stroke: state.style.color,
+          strokeWidth: state.style.strokeWidth,
+        },
+      })
+      return
     }
   }
 
@@ -62,6 +80,11 @@ export function Editor() {
     if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
       const bounds: Rect = { x: s.startX, y: s.startY, w: x - s.startX, h: y - s.startY }
       dispatch({ type: 'UPDATE_LAYER', id: s.tempId, patch: { bounds } })
+      return
+    }
+    if (state.activeTool === 'arrow') {
+      dispatch({ type: 'UPDATE_LAYER', id: s.tempId, patch: { to: { x, y } } })
+      return
     }
   }
 
