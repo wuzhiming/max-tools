@@ -12,6 +12,7 @@ import './layers/mosaic'
 import './layers/blur'
 import { TextOverlay } from './TextOverlay'
 import { Toolbar } from './toolbar/Toolbar'
+import { hitTest } from './canvas/hit'
 
 interface InitPayload {
   imagePath: string
@@ -26,6 +27,7 @@ export function Editor() {
   const [baseImage, setBase] = useState<HTMLImageElement | null>(null)
   const { state, dispatch } = useEditorStore()
   const dragRef = useRef<{ startX: number; startY: number; tempId: string } | null>(null)
+  const selectDragRef = useRef<{ id: string; startX: number; startY: number; origin: Layer } | null>(null)
   const [textPos, setTextPos] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
@@ -41,6 +43,12 @@ export function Editor() {
   }, [init])
 
   function onDown(x: number, y: number) {
+    if (state.activeTool === 'select') {
+      const hit = hitTest(state.history.current, x, y)
+      dispatch({ type: 'SELECT_LAYER', id: hit?.id ?? null })
+      if (hit) selectDragRef.current = { id: hit.id, startX: x, startY: y, origin: hit }
+      return
+    }
     if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
       const id = newLayerId()
       dragRef.current = { startX: x, startY: y, tempId: id }
@@ -127,6 +135,32 @@ export function Editor() {
   }
 
   function onMove(x: number, y: number) {
+    if (selectDragRef.current) {
+      const dx = x - selectDragRef.current.startX
+      const dy = y - selectDragRef.current.startY
+      const o = selectDragRef.current.origin
+      if (o.type === 'rect' || o.type === 'ellipse') {
+        dispatch({
+          type: 'UPDATE_LAYER',
+          id: o.id,
+          patch: { bounds: { ...o.bounds, x: o.bounds.x + dx, y: o.bounds.y + dy } },
+        })
+      } else if (o.type === 'text') {
+        dispatch({
+          type: 'UPDATE_LAYER',
+          id: o.id,
+          patch: { pos: { x: o.pos.x + dx, y: o.pos.y + dy } },
+        })
+      } else if ((o.type === 'mosaic' || o.type === 'blur') && o.region.kind === 'rect') {
+        const b = o.region.bounds
+        dispatch({
+          type: 'UPDATE_LAYER',
+          id: o.id,
+          patch: { region: { kind: 'rect', bounds: { ...b, x: b.x + dx, y: b.y + dy } } } as Partial<Layer>,
+        })
+      }
+      return
+    }
     if (!dragRef.current) return
     const s = dragRef.current
     if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
@@ -165,6 +199,7 @@ export function Editor() {
 
   function onUp() {
     dragRef.current = null
+    selectDragRef.current = null
   }
 
   function exportAndSaveAs() {
@@ -216,6 +251,28 @@ export function Editor() {
             onCancel={() => setTextPos(null)}
           />
         )}
+        {state.selectedLayerId &&
+          (() => {
+            const l = state.history.current.find((x) => x.id === state.selectedLayerId)
+            if (!l) return null
+            let r: { x: number; y: number; w: number; h: number } | null = null
+            if (l.type === 'rect' || l.type === 'ellipse') r = l.bounds
+            else if ((l.type === 'mosaic' || l.type === 'blur') && l.region.kind === 'rect') r = l.region.bounds
+            if (!r) return null
+            return (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: r.x,
+                  top: r.y,
+                  width: Math.abs(r.w),
+                  height: Math.abs(r.h),
+                  border: '1px dashed #fff',
+                  pointerEvents: 'none',
+                }}
+              />
+            )
+          })()}
       </div>
       <Toolbar
         activeTool={state.activeTool}
