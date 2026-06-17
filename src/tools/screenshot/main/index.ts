@@ -1,6 +1,91 @@
+// src/tools/screenshot/main/index.ts
+import { app } from 'electron'
+import { join } from 'node:path'
 import type { ToolContext } from '@shared/types/tool-manifest'
+import { showOverlays } from './overlay-controller'
+import { openEditor } from './editor-controller'
+import { captureFullscreenAtCursor } from './fullscreen'
+import { ensureScreenRecording, openPermissionPane } from '@main/permissions'
+import { imageToCss } from './dpi'
 
 export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
-  ctx.log.info('screenshot tool init (skeleton)')
-  // 后续 task 在这里注册快捷键、IPC、窗口
+  ctx.log.info('screenshot tool init')
+
+  const defaultSaveDir = join(app.getPath('pictures'), 'max-tools')
+  const defaultTemplate = 'screenshot-{yyyy}-{MM}-{dd}-{HH}-{mm}-{ss}'
+
+  function getSaveDir(): string {
+    return ctx.store.get<string>('saveDir', '') || defaultSaveDir
+  }
+  function getTemplate(): string {
+    return ctx.store.get<string>('filenameTemplate', '') || defaultTemplate
+  }
+
+  async function runRegionFlow(): Promise<void> {
+    if (!(await ensureScreenRecording())) {
+      openPermissionPane('screen')
+      return
+    }
+    const r = await showOverlays()
+    if (
+      r.cancelled ||
+      !r.croppedPath ||
+      !r.region ||
+      !r.displayBounds ||
+      r.width == null ||
+      r.height == null
+    ) {
+      return
+    }
+    const { screen } = await import('electron')
+    const display = screen.getDisplayMatching(r.displayBounds)
+    const dpr = display.scaleFactor
+    const cssRegion = imageToCss(r.region, dpr)
+    await openEditor({
+      imagePath: r.croppedPath,
+      pixelWidth: r.width,
+      pixelHeight: r.height,
+      windowBounds: {
+        x: r.displayBounds.x + cssRegion.x,
+        y: r.displayBounds.y + cssRegion.y,
+        width: cssRegion.w,
+        height: cssRegion.h,
+      },
+      saveDir: getSaveDir(),
+      filenameTemplate: getTemplate(),
+    })
+  }
+
+  async function runFullscreenFlow(): Promise<void> {
+    if (!(await ensureScreenRecording())) {
+      openPermissionPane('screen')
+      return
+    }
+    const r = await captureFullscreenAtCursor()
+    if (!r) return
+    await openEditor({
+      imagePath: r.imagePath,
+      pixelWidth: r.width,
+      pixelHeight: r.height,
+      windowBounds: r.displayBounds,
+      saveDir: getSaveDir(),
+      filenameTemplate: getTemplate(),
+    })
+  }
+
+  // 注册快捷键（store 中已保存的优先，否则用默认）
+  const regionCombo =
+    ctx.store.get<string>('shortcuts.region', '') || 'CommandOrControl+Shift+A'
+  const fullscreenCombo =
+    ctx.store.get<string>('shortcuts.fullscreen', '') || 'CommandOrControl+Shift+F'
+
+  const r1 = await ctx.registerShortcut('region', regionCombo, () => {
+    runRegionFlow().catch((e) => ctx.log.error(e))
+  })
+  if (!r1.ok) ctx.log.warn('region shortcut registration failed:', r1.reason)
+
+  const r2 = await ctx.registerShortcut('fullscreen', fullscreenCombo, () => {
+    runFullscreenFlow().catch((e) => ctx.log.error(e))
+  })
+  if (!r2.ok) ctx.log.warn('fullscreen shortcut registration failed:', r2.reason)
 }
