@@ -11,6 +11,7 @@ import './layers/text'
 import './layers/mosaic'
 import './layers/blur'
 import { TextOverlay } from './TextOverlay'
+import { Toolbar } from './toolbar/Toolbar'
 
 interface InitPayload {
   imagePath: string
@@ -166,6 +167,14 @@ export function Editor() {
     dragRef.current = null
   }
 
+  function exportAndSaveAs() {
+    console.log('exportAndSaveAs not yet implemented (Task 38/39)')
+  }
+
+  function exportAndComplete() {
+    console.log('exportAndComplete not yet implemented (Task 38)')
+  }
+
   if (!init) return null
 
   return (
@@ -208,9 +217,22 @@ export function Editor() {
           />
         )}
       </div>
-      <div className="editor-toolbar">
-        <span>编辑器：当前工具 = {state.activeTool}（工具栏 Task 36 完整实现）</span>
-      </div>
+      <Toolbar
+        activeTool={state.activeTool}
+        setTool={(t) => dispatch({ type: 'SET_TOOL', tool: t })}
+        color={state.style.color}
+        setColor={(c) => dispatch({ type: 'SET_STYLE', patch: { color: c } })}
+        strokeWidth={state.style.strokeWidth}
+        setStrokeWidth={(n) => dispatch({ type: 'SET_STYLE', patch: { strokeWidth: n } })}
+        blurMode={state.style.blurMode}
+        setBlurMode={(m) => dispatch({ type: 'SET_STYLE', patch: { blurMode: m } })}
+        canUndo={state.history.past.length > 0}
+        canRedo={state.history.future.length > 0}
+        onUndo={() => dispatch({ type: 'UNDO' })}
+        onRedo={() => dispatch({ type: 'REDO' })}
+        onSaveAs={() => exportAndSaveAs()}
+        onComplete={() => exportAndComplete()}
+      />
     </div>
   )
 }
