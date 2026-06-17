@@ -1,5 +1,7 @@
-// src/main/index.ts
 import { app, BrowserWindow } from 'electron'
+import { initLogger, mainLog } from './logger'
+
+initLogger()
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
@@ -8,12 +10,10 @@ if (!gotLock) {
 }
 
 app.whenReady().then(() => {
-  // 后续 task 会在这里挂 tray / main window / tool registry
-  console.log('[max-tools] app ready')
+  mainLog.info('app ready')
 })
 
 app.on('window-all-closed', (e: Electron.Event) => {
-  // macOS 菜单栏应用：所有窗口关闭也不退出
   if (process.platform === 'darwin') {
     e.preventDefault()
   } else {
