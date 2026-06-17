@@ -24,11 +24,10 @@ export async function ensureScreenRecording(): Promise<boolean> {
   // Trigger macOS TCC: the act of calling desktopCapturer.getSources() with
   // types: ['screen'] is what registers our bundle in System Settings →
   // Privacy → Screen Recording. The first call also shows the system prompt.
-  try {
-    await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1, height: 1 } })
-  } catch (err) {
-    mainLog.warn('desktopCapturer.getSources to trigger TCC failed:', err)
-  }
+  // Attach .catch synchronously to avoid Node's UnhandledPromiseRejectionWarning.
+  await desktopCapturer
+    .getSources({ types: ['screen'], thumbnailSize: { width: 1, height: 1 } })
+    .catch((err) => mainLog.warn('desktopCapturer.getSources to trigger TCC failed:', err))
   // Re-check; usually still 'not-determined' or 'denied' until user grants in System Settings + restarts.
   const after = getPermissionStatus('screen')
   return after === 'granted'
