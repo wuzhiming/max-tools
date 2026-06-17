@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { initLogger, mainLog } from './logger'
-import { createTray } from './tray'
-import { listToolSummaries } from './tool-registry'
+import { createTray, refreshTrayMenu } from './tray'
+import { listToolSummaries, loadTools } from './tool-registry'
 import { IPC } from '@shared/types/ipc'
 
 initLogger()
@@ -39,8 +39,14 @@ app.whenReady().then(async () => {
     app.dock?.hide()
   }
   registerAppIpc()
+  await loadTools({
+    manifestLoaders: [
+      async () => (await import('@tools/screenshot/manifest')).screenshotManifest,
+    ],
+  })
   createTray()
-  mainLog.info('app ready, tray created')
+  refreshTrayMenu()
+  mainLog.info('app fully started')
 })
 
 app.on('window-all-closed', () => {
