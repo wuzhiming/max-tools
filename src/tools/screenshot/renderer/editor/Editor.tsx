@@ -4,6 +4,7 @@ import { CanvasView } from './canvas/CanvasView'
 import { useEditorStore } from './state/store'
 import { newLayerId, type Rect } from './layers/types'
 import './layers/rect'
+import './layers/ellipse'
 
 interface InitPayload {
   imagePath: string
@@ -32,26 +33,33 @@ export function Editor() {
   }, [init])
 
   function onDown(x: number, y: number) {
-    if (state.activeTool === 'rect') {
+    if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
       const id = newLayerId()
       dragRef.current = { startX: x, startY: y, tempId: id }
-      dispatch({
-        type: 'ADD_LAYER',
-        layer: {
-          id,
-          type: 'rect',
-          bounds: { x, y, w: 0, h: 0 },
-          stroke: state.style.color,
-          strokeWidth: state.style.strokeWidth,
-        },
-      })
+      const baseLayer =
+        state.activeTool === 'rect'
+          ? {
+              id,
+              type: 'rect' as const,
+              bounds: { x, y, w: 0, h: 0 },
+              stroke: state.style.color,
+              strokeWidth: state.style.strokeWidth,
+            }
+          : {
+              id,
+              type: 'ellipse' as const,
+              bounds: { x, y, w: 0, h: 0 },
+              stroke: state.style.color,
+              strokeWidth: state.style.strokeWidth,
+            }
+      dispatch({ type: 'ADD_LAYER', layer: baseLayer })
     }
   }
 
   function onMove(x: number, y: number) {
     if (!dragRef.current) return
     const s = dragRef.current
-    if (state.activeTool === 'rect') {
+    if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
       const bounds: Rect = { x: s.startX, y: s.startY, w: x - s.startX, h: y - s.startY }
       dispatch({ type: 'UPDATE_LAYER', id: s.tempId, patch: { bounds } })
     }
