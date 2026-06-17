@@ -71,7 +71,7 @@ app.whenReady().then(async () => {
       async () => (await import('@tools/screenshot/manifest')).screenshotManifest,
     ],
   })
-  createTray()
+  await createTray()
   refreshTrayMenu()
   mainLog.info('app fully started')
 })
