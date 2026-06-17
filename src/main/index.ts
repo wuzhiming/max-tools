@@ -3,6 +3,7 @@ import { initLogger, mainLog } from './logger'
 import { createTray, refreshTrayMenu } from './tray'
 import { listToolSummaries, loadTools, getToolShortcuts, setToolShortcut } from './tool-registry'
 import { getScopedStore } from './settings-store'
+import { getPermissionStatus, openPermissionPane } from './permissions'
 import { IPC } from '@shared/types/ipc'
 
 initLogger()
@@ -50,6 +51,13 @@ function registerAppIpc(): void {
     (_e, args: { toolId: string; key: string; value: unknown }) => {
       getScopedStore(`tool.${args.toolId}`).set(args.key, args.value)
     },
+  )
+  ipcMain.handle(IPC.GetPermissions, () => ({
+    screen: getPermissionStatus('screen'),
+    accessibility: getPermissionStatus('accessibility'),
+  }))
+  ipcMain.handle(IPC.OpenPermissionPane, (_e, kind: 'screen' | 'accessibility') =>
+    openPermissionPane(kind),
   )
 }
 

@@ -26,11 +26,23 @@ function parseRoute(path: string): Route {
 export function App() {
   const [tools, setTools] = useState<ToolSummary[]>([])
   const [route, setRoute] = useState<Route>({ kind: 'general' })
+  const [perms, setPerms] = useState<{ screen: string; accessibility: string }>({
+    screen: 'unknown',
+    accessibility: 'unknown',
+  })
 
   useEffect(() => {
     window.mt.invoke(window.mt.IPC.ToolList).then((t) => setTools(t as ToolSummary[]))
     const off = window.mt.on('navigate', (path) => setRoute(parseRoute(path as string)))
     return () => { off() }
+  }, [])
+
+  useEffect(() => {
+    const refresh = () =>
+      window.mt.invoke(window.mt.IPC.GetPermissions).then((p) => setPerms(p as never))
+    refresh()
+    const t = setInterval(refresh, 3000)
+    return () => clearInterval(t)
   }, [])
 
   return (
@@ -64,6 +76,24 @@ export function App() {
         </div>
       </aside>
       <main className="content">
+        {perms.screen !== 'granted' && (
+          <div className="error-banner">
+            截图功能需要"屏幕录制"权限 —
+            <button onClick={() => window.mt.invoke(window.mt.IPC.OpenPermissionPane, 'screen')}>
+              去授权
+            </button>
+          </div>
+        )}
+        {perms.accessibility !== 'granted' && (
+          <div className="error-banner">
+            "窗口自动识别"需要"辅助功能"权限 —
+            <button
+              onClick={() => window.mt.invoke(window.mt.IPC.OpenPermissionPane, 'accessibility')}
+            >
+              去授权
+            </button>
+          </div>
+        )}
         {route.kind === 'tool' && <ToolHostPage toolId={route.id} />}
         {route.kind === 'general' && <GeneralPage />}
         {route.kind === 'about' && <AboutPage />}

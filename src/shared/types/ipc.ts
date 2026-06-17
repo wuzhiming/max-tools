@@ -9,6 +9,8 @@ export const IPC = {
   GetVersion: 'app/get-version',
   DialogOpenDirectory: 'app/dialog-open-directory',
   DialogSaveFile: 'app/dialog-save-file',
+  GetPermissions: 'app/get-permissions',
+  OpenPermissionPane: 'app/open-permission-pane',
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]
