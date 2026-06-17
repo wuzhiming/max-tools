@@ -2,6 +2,7 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import { join } from 'node:path'
 import { captureAllDisplays, type CapturedDisplay } from './capture'
+import { detectWindowsOnDisplay } from './window-detect'
 import { cropImage } from './crop'
 import { SS_IPC, type OverlayInitPayload, type OverlaySelectedPayload } from '@shared/types/screenshot-ipc'
 import { createLogger } from '@main/logger'
@@ -131,7 +132,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
           pixelWidth: cap.pixelWidth,
           pixelHeight: cap.pixelHeight,
           devicePixelRatio: cap.display.scaleFactor,
-          windowsOnThisDisplay: [],
+          windowsOnThisDisplay: detectWindowsOnDisplay(cap.display),
         }
         // 渲染层用 displayId = 数组索引
         win.webContents.send(SS_IPC.OverlayInit, { ...payload, displayId: idx })
