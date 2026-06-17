@@ -202,13 +202,42 @@ export function Editor() {
     selectDragRef.current = null
   }
 
-  function exportAndSaveAs() {
-    console.log('exportAndSaveAs not yet implemented (Task 38/39)')
+  function exportCanvas(): string | null {
+    const cvs = document.querySelector('canvas.editor-canvas') as HTMLCanvasElement | null
+    if (!cvs) return null
+    return cvs.toDataURL('image/png')
   }
 
   function exportAndComplete() {
-    console.log('exportAndComplete not yet implemented (Task 38)')
+    const dataUrl = exportCanvas()
+    if (!dataUrl) return
+    window.mt.send(window.mt.SS_IPC.EditorComplete, { dataUrl })
   }
+
+  function exportAndSaveAs() {
+    const dataUrl = exportCanvas()
+    if (!dataUrl || !init) return
+    const suggested = `screenshot-${Date.now()}.png`
+    window.mt.send(window.mt.SS_IPC.EditorSaveAs, {
+      dataUrl,
+      suggestedPath: `${init.saveDir}/${suggested}`,
+    })
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (textPos) return
+      if (e.key === 'Enter' || e.key === 'Return') {
+        e.preventDefault()
+        exportAndComplete()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        window.mt.send(window.mt.SS_IPC.EditorCancel)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [textPos])
 
   if (!init) return null
 
