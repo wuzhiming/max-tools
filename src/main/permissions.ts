@@ -1,5 +1,5 @@
 // src/main/permissions.ts
-import { systemPreferences, shell } from 'electron'
+import { systemPreferences, shell, desktopCapturer } from 'electron'
 import { mainLog } from './logger'
 
 export type PermissionKind = 'screen' | 'accessibility'
@@ -17,13 +17,21 @@ export function getPermissionStatus(kind: PermissionKind): PermissionStatus {
 }
 
 export async function ensureScreenRecording(): Promise<boolean> {
+  if (process.platform !== 'darwin') return true
   const status = getPermissionStatus('screen')
   if (status === 'granted') return true
   mainLog.warn('screen recording not granted, status=', status)
-  // 触发系统授权对话框（trigger 一次后 macOS 会记住）
-  if (process.platform !== 'darwin') return false
-  await systemPreferences.askForMediaAccess?.('camera').catch(() => {})
-  return false
+  // Trigger macOS TCC: the act of calling desktopCapturer.getSources() with
+  // types: ['screen'] is what registers our bundle in System Settings →
+  // Privacy → Screen Recording. The first call also shows the system prompt.
+  try {
+    await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1, height: 1 } })
+  } catch (err) {
+    mainLog.warn('desktopCapturer.getSources to trigger TCC failed:', err)
+  }
+  // Re-check; usually still 'not-determined' or 'denied' until user grants in System Settings + restarts.
+  const after = getPermissionStatus('screen')
+  return after === 'granted'
 }
 
 export function openPermissionPane(kind: PermissionKind): void {

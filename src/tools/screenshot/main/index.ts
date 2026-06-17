@@ -21,11 +21,27 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     return ctx.store.get<string>('filenameTemplate', '') || defaultTemplate
   }
 
+  async function checkPermissionWithUserPrompt(): Promise<boolean> {
+    if (await ensureScreenRecording()) return true
+    const { dialog, app } = await import('electron')
+    const isDev = !app.isPackaged
+    const r = await dialog.showMessageBox({
+      type: 'info',
+      title: '需要屏幕录制权限',
+      message: '截图功能需要屏幕录制权限',
+      detail: isDev
+        ? '点击"打开系统设置"，在 "隐私与安全性 → 屏幕录制" 列表里找到 "Electron"（开发模式下显示为 Electron 而不是 Max Tools），打开开关，然后重启本应用。\n\n如果列表里没有 Electron 条目，请重试一次截图触发系统添加它。'
+        : '点击"打开系统设置"，在 "隐私与安全性 → 屏幕录制" 列表里找到 "Max Tools"，打开开关，然后重启本应用。',
+      buttons: ['打开系统设置', '取消'],
+      defaultId: 0,
+      cancelId: 1,
+    })
+    if (r.response === 0) openPermissionPane('screen')
+    return false
+  }
+
   async function runRegionFlow(): Promise<void> {
-    if (!(await ensureScreenRecording())) {
-      openPermissionPane('screen')
-      return
-    }
+    if (!(await checkPermissionWithUserPrompt())) return
     const r = await showOverlays()
     if (
       r.cancelled ||
@@ -57,10 +73,7 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
   }
 
   async function runFullscreenFlow(): Promise<void> {
-    if (!(await ensureScreenRecording())) {
-      openPermissionPane('screen')
-      return
-    }
+    if (!(await checkPermissionWithUserPrompt())) return
     const r = await captureFullscreenAtCursor()
     if (!r) return
     await openEditor({
