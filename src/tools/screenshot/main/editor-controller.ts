@@ -1,7 +1,7 @@
 // src/tools/screenshot/main/editor-controller.ts
 import { BrowserWindow, ipcMain, clipboard, nativeImage } from 'electron'
-import { join } from 'node:path'
-import { writeFile } from 'node:fs/promises'
+import { join, dirname } from 'node:path'
+import { writeFile, mkdir } from 'node:fs/promises'
 import { SS_IPC } from '@shared/types/screenshot-ipc'
 import { createLogger } from '@main/logger'
 
@@ -84,6 +84,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
         ],
       })
       if (r.canceled || !r.filePath) return
+      await mkdir(dirname(r.filePath), { recursive: true })
       const buf = Buffer.from(payload.dataUrl.split(',')[1], 'base64')
       await writeFile(r.filePath, buf)
       log.info('editor result saved to', r.filePath)

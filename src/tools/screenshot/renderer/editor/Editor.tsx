@@ -13,6 +13,7 @@ import './layers/blur'
 import { TextOverlay } from './TextOverlay'
 import { Toolbar } from './toolbar/Toolbar'
 import { hitTest } from './canvas/hit'
+import { renderFilenameTemplate } from '@tools/screenshot/main/filename'
 
 interface InitPayload {
   imagePath: string
@@ -217,10 +218,10 @@ export function Editor() {
   function exportAndSaveAs() {
     const dataUrl = exportCanvas()
     if (!dataUrl || !init) return
-    const suggested = `screenshot-${Date.now()}.png`
+    const name = renderFilenameTemplate(init.filenameTemplate) + '.png'
     window.mt.send(window.mt.SS_IPC.EditorSaveAs, {
       dataUrl,
-      suggestedPath: `${init.saveDir}/${suggested}`,
+      suggestedPath: `${init.saveDir}/${name}`,
     })
   }
 
