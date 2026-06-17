@@ -7,6 +7,8 @@ import './layers/rect'
 import './layers/ellipse'
 import './layers/arrow'
 import './layers/pen'
+import './layers/text'
+import { TextOverlay } from './TextOverlay'
 
 interface InitPayload {
   imagePath: string
@@ -21,6 +23,7 @@ export function Editor() {
   const [baseImage, setBase] = useState<HTMLImageElement | null>(null)
   const { state, dispatch } = useEditorStore()
   const dragRef = useRef<{ startX: number; startY: number; tempId: string } | null>(null)
+  const [textPos, setTextPos] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     const off = window.mt.on(window.mt.SS_IPC.EditorInit, (p) => setInit(p as InitPayload))
@@ -88,6 +91,10 @@ export function Editor() {
       })
       return
     }
+    if (state.activeTool === 'text') {
+      setTextPos({ x, y })
+      return
+    }
   }
 
   function onMove(x: number, y: number) {
@@ -133,6 +140,33 @@ export function Editor() {
           onMouseMove={onMove}
           onMouseUp={onUp}
         />
+        {textPos && (
+          <TextOverlay
+            x={textPos.x}
+            y={textPos.y}
+            fontSize={state.style.fontSize}
+            color={state.style.color}
+            fontFamily="-apple-system, sans-serif"
+            onCommit={(text) => {
+              if (text.trim()) {
+                dispatch({
+                  type: 'ADD_LAYER',
+                  layer: {
+                    id: newLayerId(),
+                    type: 'text',
+                    pos: textPos,
+                    content: text,
+                    fontSize: state.style.fontSize,
+                    color: state.style.color,
+                    fontFamily: '-apple-system, sans-serif',
+                  },
+                })
+              }
+              setTextPos(null)
+            }}
+            onCancel={() => setTextPos(null)}
+          />
+        )}
       </div>
       <div className="editor-toolbar">
         <span>编辑器：当前工具 = {state.activeTool}（工具栏 Task 36 完整实现）</span>
