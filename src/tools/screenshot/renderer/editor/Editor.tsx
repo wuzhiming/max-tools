@@ -2,12 +2,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { CanvasView } from './canvas/CanvasView'
 import { useEditorStore } from './state/store'
-import { newLayerId, type Rect } from './layers/types'
+import { newLayerId, type Layer, type Rect } from './layers/types'
 import './layers/rect'
 import './layers/ellipse'
 import './layers/arrow'
 import './layers/pen'
 import './layers/text'
+import './layers/mosaic'
 import { TextOverlay } from './TextOverlay'
 
 interface InitPayload {
@@ -95,6 +96,20 @@ export function Editor() {
       setTextPos({ x, y })
       return
     }
+    if (state.activeTool === 'blur') {
+      const id = newLayerId()
+      dragRef.current = { startX: x, startY: y, tempId: id }
+      dispatch({
+        type: 'ADD_LAYER',
+        layer: {
+          id,
+          type: 'mosaic',
+          region: { kind: 'rect', bounds: { x, y, w: 0, h: 0 } },
+          blockSize: state.style.blockSize,
+        },
+      })
+      return
+    }
   }
 
   function onMove(x: number, y: number) {
@@ -116,6 +131,18 @@ export function Editor() {
           type: 'UPDATE_LAYER',
           id: current.id,
           patch: { points: [...current.points, { x, y }] },
+        })
+      }
+      return
+    }
+    if (state.activeTool === 'blur') {
+      const cur = state.history.current.find((l) => l.id === s.tempId)
+      if (cur && (cur.type === 'mosaic' || cur.type === 'blur')) {
+        const bounds: Rect = { x: s.startX, y: s.startY, w: x - s.startX, h: y - s.startY }
+        dispatch({
+          type: 'UPDATE_LAYER',
+          id: cur.id,
+          patch: { region: { kind: 'rect', bounds } } as Partial<Layer>,
         })
       }
       return
