@@ -27,9 +27,9 @@ export function showMainWindow(route?: string): void {
   })
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/main-window/`)
+    mainWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/src/renderer/main-window/index.html`)
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/main-window/index.html'))
+    mainWindow.loadFile(join(__dirname, '../renderer/src/renderer/main-window/index.html'))
   }
 
   mainWindow.once('ready-to-show', () => {

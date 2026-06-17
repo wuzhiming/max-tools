@@ -45,10 +45,10 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   activeEditor = win
 
   const url = process.env['ELECTRON_RENDERER_URL']
-    ? `${process.env['ELECTRON_RENDERER_URL']}/../tools/screenshot/renderer/editor/`
+    ? `${process.env['ELECTRON_RENDERER_URL']}/src/tools/screenshot/renderer/editor/index.html`
     : null
   if (url) win.loadURL(url)
-  else win.loadFile(join(__dirname, '../../../renderer/screenshot/editor/index.html'))
+  else win.loadFile(join(__dirname, '../../../renderer/src/tools/screenshot/renderer/editor/index.html'))
 
   win.webContents.once('did-finish-load', () => {
     win.webContents.send(SS_IPC.EditorInit, {

@@ -117,12 +117,12 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
       })
 
       const url = process.env['ELECTRON_RENDERER_URL']
-        ? `${process.env['ELECTRON_RENDERER_URL']}/../tools/screenshot/renderer/overlay/`
+        ? `${process.env['ELECTRON_RENDERER_URL']}/src/tools/screenshot/renderer/overlay/index.html`
         : null
       if (url) {
         win.loadURL(url)
       } else {
-        win.loadFile(join(__dirname, '../../../renderer/screenshot/overlay/index.html'))
+        win.loadFile(join(__dirname, '../../../renderer/src/tools/screenshot/renderer/overlay/index.html'))
       }
 
       win.webContents.once('did-finish-load', () => {
