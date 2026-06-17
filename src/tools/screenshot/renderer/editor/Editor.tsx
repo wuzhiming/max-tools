@@ -9,6 +9,7 @@ import './layers/arrow'
 import './layers/pen'
 import './layers/text'
 import './layers/mosaic'
+import './layers/blur'
 import { TextOverlay } from './TextOverlay'
 
 interface InitPayload {
@@ -99,15 +100,27 @@ export function Editor() {
     if (state.activeTool === 'blur') {
       const id = newLayerId()
       dragRef.current = { startX: x, startY: y, tempId: id }
-      dispatch({
-        type: 'ADD_LAYER',
-        layer: {
-          id,
-          type: 'mosaic',
-          region: { kind: 'rect', bounds: { x, y, w: 0, h: 0 } },
-          blockSize: state.style.blockSize,
-        },
-      })
+      if (state.style.blurMode === 'gaussian') {
+        dispatch({
+          type: 'ADD_LAYER',
+          layer: {
+            id,
+            type: 'blur',
+            region: { kind: 'rect', bounds: { x, y, w: 0, h: 0 } },
+            blurRadius: state.style.blurRadius,
+          },
+        })
+      } else {
+        dispatch({
+          type: 'ADD_LAYER',
+          layer: {
+            id,
+            type: 'mosaic',
+            region: { kind: 'rect', bounds: { x, y, w: 0, h: 0 } },
+            blockSize: state.style.blockSize,
+          },
+        })
+      }
       return
     }
   }
