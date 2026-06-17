@@ -25,7 +25,6 @@ const makeManifest = (overrides: Partial<ToolManifest> = {}): ToolManifest => ({
   name: 'Demo',
   defaultShortcuts: {},
   init: vi.fn(async () => {}),
-  settingsView: async () => ({ default: () => null }),
   ...overrides,
 })
 

@@ -9,5 +9,4 @@ export const screenshotManifest: ToolManifest = {
     fullscreen: 'CommandOrControl+Shift+F',
   },
   init: initScreenshotTool,
-  settingsView: () => import('./renderer/settings/index'),
 }

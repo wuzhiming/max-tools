@@ -1,6 +1,5 @@
 // src/shared/types/tool-manifest.ts
 import type { BrowserWindow } from 'electron'
-import type { ComponentType } from 'react'
 import type { ScopedStore } from '@main/settings-store'
 
 export interface ToolManifest {
@@ -9,7 +8,9 @@ export interface ToolManifest {
   icon?: string
   defaultShortcuts: Record<string, string>
   init: (ctx: ToolContext) => Promise<void> | void
-  settingsView: () => Promise<{ default: ComponentType<ToolSettingsProps> }>
+  // settingsView is intentionally not declared here.
+  // The renderer maps tool ids to settings components in tool-host.tsx,
+  // so the main process never imports renderer-only code.
 }
 
 export interface ToolContext {
