@@ -228,17 +228,29 @@ export function Editor() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (textPos) return
-      if (e.key === 'Enter' || e.key === 'Return') {
-        e.preventDefault()
-        exportAndComplete()
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Escape') {
         e.preventDefault()
         window.mt.send(window.mt.SS_IPC.EditorCancel)
+      } else if (e.key === 'Enter' || e.key === 'Return') {
+        e.preventDefault()
+        exportAndComplete()
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedLayerId) {
+        e.preventDefault()
+        dispatch({ type: 'DELETE_LAYER', id: state.selectedLayerId })
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        dispatch({ type: 'UNDO' })
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'Z' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        dispatch({ type: 'REDO' })
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault()
+        exportAndSaveAs()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [textPos])
+  }, [textPos, state.selectedLayerId])
 
   if (!init) return null
 
