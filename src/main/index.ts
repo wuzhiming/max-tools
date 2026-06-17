@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { initLogger, mainLog } from './logger'
+import { createTray } from './tray'
 
 initLogger()
 
@@ -9,8 +10,13 @@ if (!gotLock) {
   process.exit(0)
 }
 
-app.whenReady().then(() => {
-  mainLog.info('app ready')
+app.whenReady().then(async () => {
+  // macOS 隐藏 Dock 图标（菜单栏应用）
+  if (process.platform === 'darwin') {
+    app.dock?.hide()
+  }
+  createTray()
+  mainLog.info('app ready, tray created')
 })
 
 app.on('window-all-closed', () => {
