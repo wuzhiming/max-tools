@@ -27,7 +27,7 @@ export interface ToolContext {
 }
 
 export interface ToolSettingsProps {
-  store: ScopedStore
+  toolId: string
   shortcuts: ShortcutBinding[]
   setShortcut: (key: string, combo: string) => Promise<RegisterResult>
   toast: (msg: string, type?: 'info' | 'error') => void

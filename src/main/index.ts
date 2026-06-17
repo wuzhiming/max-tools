@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { initLogger, mainLog } from './logger'
 import { createTray, refreshTrayMenu } from './tray'
-import { listToolSummaries, loadTools } from './tool-registry'
+import { listToolSummaries, loadTools, getToolShortcuts, setToolShortcut } from './tool-registry'
+import { getScopedStore } from './settings-store'
 import { IPC } from '@shared/types/ipc'
 
 initLogger()
@@ -32,6 +33,24 @@ function registerAppIpc(): void {
     })
     return r.canceled ? null : r.filePath
   })
+  ipcMain.handle(IPC.ToolGetShortcuts, (_e, toolId: string) => getToolShortcuts(toolId))
+  ipcMain.handle(
+    IPC.ToolSetShortcut,
+    (_e, args: { toolId: string; key: string; combo: string }) =>
+      setToolShortcut(args.toolId, args.key, args.combo),
+  )
+  ipcMain.handle(
+    IPC.ToolStoreGet,
+    (_e, args: { toolId: string; key: string; defaultValue?: unknown }) => {
+      return getScopedStore(`tool.${args.toolId}`).get(args.key, args.defaultValue as never)
+    },
+  )
+  ipcMain.handle(
+    IPC.ToolStoreSet,
+    (_e, args: { toolId: string; key: string; value: unknown }) => {
+      getScopedStore(`tool.${args.toolId}`).set(args.key, args.value)
+    },
+  )
 }
 
 app.whenReady().then(async () => {

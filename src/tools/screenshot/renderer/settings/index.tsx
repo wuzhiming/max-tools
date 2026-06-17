@@ -1,25 +1,22 @@
 // src/tools/screenshot/renderer/settings/index.tsx
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import type { ToolSettingsProps } from '@shared/types/tool-manifest'
 import { SettingRow } from '@renderer/shared/components/SettingRow'
 import { Toggle } from '@renderer/shared/components/Toggle'
 import { FilePathPicker } from '@renderer/shared/components/FilePathPicker'
 import { ShortcutRecorder } from '@renderer/shared/components/ShortcutRecorder'
+import { useToolSetting } from '@renderer/shared/hooks/useToolSetting'
 
-export default function ScreenshotSettings({ store, shortcuts, setShortcut, toast }: ToolSettingsProps) {
-  const [saveDir, setSaveDir] = useState<string>(store.get('saveDir', ''))
-  const [template, setTemplate] = useState<string>(
-    store.get('filenameTemplate', 'screenshot-{yyyy}-{MM}-{dd}-{HH}-{mm}-{ss}'),
+export default function ScreenshotSettings({ toolId, shortcuts, setShortcut, toast }: ToolSettingsProps) {
+  const [saveDir, setSaveDir] = useToolSetting<string>(toolId, 'saveDir', '')
+  const [template, setTemplate] = useToolSetting<string>(
+    toolId,
+    'filenameTemplate',
+    'screenshot-{yyyy}-{MM}-{dd}-{HH}-{mm}-{ss}',
   )
-  const [windowDetect, setWindowDetect] = useState<boolean>(store.get('windowDetect', true))
-  const [colorFormat, setColorFormat] = useState<string>(store.get('colorFormat', 'HEX'))
-  const [defaultBlockSize, setDefaultBlockSize] = useState<number>(store.get('defaultBlockSize', 12))
-
-  useEffect(() => store.set('saveDir', saveDir), [saveDir, store])
-  useEffect(() => store.set('filenameTemplate', template), [template, store])
-  useEffect(() => store.set('windowDetect', windowDetect), [windowDetect, store])
-  useEffect(() => store.set('colorFormat', colorFormat), [colorFormat, store])
-  useEffect(() => store.set('defaultBlockSize', defaultBlockSize), [defaultBlockSize, store])
+  const [windowDetect, setWindowDetect] = useToolSetting<boolean>(toolId, 'windowDetect', true)
+  const [colorFormat, setColorFormat] = useToolSetting<string>(toolId, 'colorFormat', 'HEX')
+  const [defaultBlockSize, setDefaultBlockSize] = useToolSetting<number>(toolId, 'defaultBlockSize', 12)
 
   const findShortcut = (key: string) => shortcuts.find((s) => s.key === key)?.combo ?? ''
 
