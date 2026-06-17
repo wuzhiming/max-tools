@@ -13,10 +13,9 @@ app.whenReady().then(() => {
   mainLog.info('app ready')
 })
 
-app.on('window-all-closed', (e: Electron.Event) => {
-  if (process.platform === 'darwin') {
-    e.preventDefault()
-  } else {
+app.on('window-all-closed', () => {
+  // macOS 菜单栏应用：所有窗口关闭也不退出。仅注册监听器即可阻止默认 quit 行为。
+  if (process.platform !== 'darwin') {
     app.quit()
   }
 })

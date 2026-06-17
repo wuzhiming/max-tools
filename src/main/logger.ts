@@ -18,7 +18,9 @@ export function initLogger(): void {
     join(app.getPath('logs'), 'max-tools.log')
 }
 
-export function createLogger(scope: string): log.LogFunctions {
+export type ScopedLogger = ReturnType<typeof log.scope>
+
+export function createLogger(scope: string): ScopedLogger {
   return log.scope(scope)
 }
 
