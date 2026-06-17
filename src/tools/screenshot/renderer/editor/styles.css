@@ -1,0 +1,24 @@
+/* src/tools/screenshot/renderer/editor/styles.css */
+.editor-root { display: flex; flex-direction: column; height: 100vh; }
+.editor-canvas-wrap { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; -webkit-app-region: no-drag; }
+.editor-canvas { display: block; box-shadow: 0 4px 20px rgba(0,0,0,0.5); cursor: crosshair; }
+.editor-toolbar {
+  height: 48px;
+  background: #2c2c2e;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  -webkit-app-region: no-drag;
+  color: white;
+  font-family: -apple-system, sans-serif;
+  font-size: 12px;
+  border-top: 1px solid #3a3a3c;
+}
+.tool-btn { background: transparent; color: white; border: 1px solid transparent; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
+.tool-btn:hover { background: rgba(255,255,255,0.08); }
+.tool-btn.active { background: #007aff; }
+.tool-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.tool-sep { width: 1px; height: 22px; background: #3a3a3c; margin: 0 6px; }
+.color-swatch { width: 22px; height: 22px; border-radius: 4px; border: 2px solid #3a3a3c; cursor: pointer; }
+.text-edit-input { position: absolute; background: rgba(0,0,0,0.6); color: white; border: 1px dashed #fff; padding: 4px 6px; font-size: 16px; outline: none; }
