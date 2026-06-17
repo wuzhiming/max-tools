@@ -7,6 +7,8 @@ export const IPC = {
   ToolStoreSet: 'tools/store-set',
   OpenLogsFolder: 'app/open-logs',
   GetVersion: 'app/get-version',
+  DialogOpenDirectory: 'app/dialog-open-directory',
+  DialogSaveFile: 'app/dialog-save-file',
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]
