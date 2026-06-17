@@ -6,6 +6,7 @@ import { newLayerId, type Rect } from './layers/types'
 import './layers/rect'
 import './layers/ellipse'
 import './layers/arrow'
+import './layers/pen'
 
 interface InitPayload {
   imagePath: string
@@ -72,6 +73,21 @@ export function Editor() {
       })
       return
     }
+    if (state.activeTool === 'pen') {
+      const id = newLayerId()
+      dragRef.current = { startX: x, startY: y, tempId: id }
+      dispatch({
+        type: 'ADD_LAYER',
+        layer: {
+          id,
+          type: 'pen',
+          points: [{ x, y }],
+          stroke: state.style.color,
+          strokeWidth: state.style.strokeWidth,
+        },
+      })
+      return
+    }
   }
 
   function onMove(x: number, y: number) {
@@ -84,6 +100,17 @@ export function Editor() {
     }
     if (state.activeTool === 'arrow') {
       dispatch({ type: 'UPDATE_LAYER', id: s.tempId, patch: { to: { x, y } } })
+      return
+    }
+    if (state.activeTool === 'pen') {
+      const current = state.history.current.find((l) => l.id === s.tempId)
+      if (current && current.type === 'pen') {
+        dispatch({
+          type: 'UPDATE_LAYER',
+          id: current.id,
+          patch: { points: [...current.points, { x, y }] },
+        })
+      }
       return
     }
   }
