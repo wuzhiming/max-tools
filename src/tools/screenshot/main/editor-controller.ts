@@ -48,10 +48,24 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   const url = process.env['ELECTRON_RENDERER_URL']
     ? `${process.env['ELECTRON_RENDERER_URL']}/src/tools/screenshot/renderer/editor/index.html`
     : null
+  const loadFilePath = url
+    ? null
+    : join(__dirname, '../../../renderer/src/tools/screenshot/renderer/editor/index.html')
+  log.info('creating editor window, url=', url ?? loadFilePath)
   if (url) win.loadURL(url)
-  else win.loadFile(join(__dirname, '../../../renderer/src/tools/screenshot/renderer/editor/index.html'))
+  else win.loadFile(loadFilePath!)
+  // Always open DevTools detached so we can see renderer errors
+  win.webContents.openDevTools({ mode: 'detach' })
+
+  win.webContents.on('console-message', (_e, _level, message, line, sourceId) => {
+    log.info(`[editor-renderer] ${message}`, sourceId ? `(${sourceId}:${line})` : '')
+  })
+  win.webContents.on('did-fail-load', (_e, errorCode, errorDesc, validatedURL) => {
+    log.error(`editor did-fail-load: ${errorDesc} (${errorCode}) url=${validatedURL}`)
+  })
 
   win.webContents.once('did-finish-load', () => {
+    log.info('editor window did-finish-load, destroyed=', win.isDestroyed())
     win.webContents.send(SS_IPC.EditorInit, {
       imagePath: args.imagePath,
       pixelWidth: args.pixelWidth,

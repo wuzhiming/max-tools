@@ -41,6 +41,7 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
   }
 
   async function runRegionFlow(): Promise<void> {
+    ctx.log.info('runRegionFlow triggered')
     if (!(await checkPermissionWithUserPrompt())) return
     const r = await showOverlays()
     if (
@@ -73,6 +74,7 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
   }
 
   async function runFullscreenFlow(): Promise<void> {
+    ctx.log.info('runFullscreenFlow triggered')
     if (!(await checkPermissionWithUserPrompt())) return
     const r = await captureFullscreenAtCursor()
     if (!r) return

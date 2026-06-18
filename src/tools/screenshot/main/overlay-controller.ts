@@ -58,12 +58,14 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
     const settle = (r: ShowOverlayResult) => {
       if (settled) return
       settled = true
+      log.info('settle:', r.cancelled ? 'cancelled' : 'selected')
       closeAll()
       cleanupIpc()
       resolve(r)
     }
 
     const closeAll = () => {
+      log.info('closeAll: destroying', activeOverlays.length, 'windows')
       for (const w of activeOverlays) {
         if (!w.isDestroyed()) w.destroy()
       }
@@ -71,6 +73,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
     }
 
     const onSelected = async (_e: Electron.IpcMainEvent, payload: OverlaySelectedPayload) => {
+      log.info('IPC OverlaySelected received, displayId=', payload.displayId)
       const cap = captured[payload.displayId]
       if (!cap) { log.error('selected unknown displayId', payload.displayId); return }
       try {
@@ -113,20 +116,35 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
       win.webContents.on('before-input-event', (_event, input) => {
         if (win.isDestroyed()) return
         if (input.type === 'keyDown' && input.key === 'Escape') {
+          log.info('Esc pressed in overlay', idx, 'destroyed=', win.isDestroyed())
           settle({ cancelled: true })
         }
+      })
+
+      win.webContents.on('console-message', (_e, _level, message, line, sourceId) => {
+        log.info(`[overlay-renderer] ${message}`, sourceId ? `(${sourceId}:${line})` : '')
+      })
+      win.webContents.on('did-fail-load', (_e, errorCode, errorDesc, validatedURL) => {
+        log.error(`overlay did-fail-load: ${errorDesc} (${errorCode}) url=${validatedURL}`)
       })
 
       const url = process.env['ELECTRON_RENDERER_URL']
         ? `${process.env['ELECTRON_RENDERER_URL']}/src/tools/screenshot/renderer/overlay/index.html`
         : null
+      const loadFilePath = url
+        ? null
+        : join(__dirname, '../../../renderer/src/tools/screenshot/renderer/overlay/index.html')
+      log.info('creating overlay window for display', idx, 'url=', url ?? loadFilePath)
       if (url) {
         win.loadURL(url)
       } else {
-        win.loadFile(join(__dirname, '../../../renderer/src/tools/screenshot/renderer/overlay/index.html'))
+        win.loadFile(loadFilePath!)
       }
+      // Always open DevTools detached so we can see renderer errors
+      win.webContents.openDevTools({ mode: 'detach' })
 
       win.webContents.once('did-finish-load', () => {
+        log.info('overlay window did-finish-load, displayId=', idx, 'destroyed=', win.isDestroyed())
         if (win.isDestroyed() || win.webContents.isDestroyed()) return
         const payload: OverlayInitPayload = {
           imagePath: cap.imagePath,
@@ -136,6 +154,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
           devicePixelRatio: cap.display.scaleFactor,
           windowsOnThisDisplay: detectWindowsOnDisplay(cap.display),
         }
+        log.info('sending OverlayInit, imagePath=', payload.imagePath)
         // 渲染层用 displayId = 数组索引
         win.webContents.send(SS_IPC.OverlayInit, { ...payload, displayId: idx })
         if (win.isDestroyed()) return

@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { existsSync, statSync } from 'node:fs'
 import { screen, type Display } from 'electron'
 import { createLogger } from '@main/logger'
 
@@ -39,6 +40,8 @@ export async function captureAllDisplays(): Promise<CapturedDisplay[]> {
         log.error('screencapture failed for display', idx, err)
         throw err
       }
+      const stats = existsSync(imagePath) ? statSync(imagePath) : null
+      log.info(`screencapture[${idx}]: path=${imagePath} exists=${!!stats} size=${stats?.size ?? 0}`)
       // 物理像素 = CSS 尺寸 * 缩放
       const { width, height } = display.size
       const dpr = display.scaleFactor
