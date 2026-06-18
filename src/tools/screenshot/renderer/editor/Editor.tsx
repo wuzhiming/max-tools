@@ -110,13 +110,14 @@ export function Editor() {
     if (state.activeTool === 'blur') {
       const id = newLayerId()
       dragRef.current = { startX: x, startY: y, tempId: id }
+      const radius = state.style.blockSize * 2
       if (state.style.blurMode === 'gaussian') {
         dispatch({
           type: 'ADD_LAYER',
           layer: {
             id,
             type: 'blur',
-            region: { kind: 'rect', bounds: { x, y, w: 0, h: 0 } },
+            region: { kind: 'pen', points: [{ x, y }], radius },
             blurRadius: state.style.blurRadius,
           },
         })
@@ -126,7 +127,7 @@ export function Editor() {
           layer: {
             id,
             type: 'mosaic',
-            region: { kind: 'rect', bounds: { x, y, w: 0, h: 0 } },
+            region: { kind: 'pen', points: [{ x, y }], radius },
             blockSize: state.style.blockSize,
           },
         })
@@ -186,12 +187,13 @@ export function Editor() {
     }
     if (state.activeTool === 'blur') {
       const cur = state.history.current.find((l) => l.id === s.tempId)
-      if (cur && (cur.type === 'mosaic' || cur.type === 'blur')) {
-        const bounds: Rect = { x: s.startX, y: s.startY, w: x - s.startX, h: y - s.startY }
+      if (cur && (cur.type === 'mosaic' || cur.type === 'blur') && cur.region.kind === 'pen') {
         dispatch({
           type: 'UPDATE_LAYER',
           id: cur.id,
-          patch: { region: { kind: 'rect', bounds } } as Partial<Layer>,
+          patch: {
+            region: { ...cur.region, points: [...cur.region.points, { x, y }] },
+          } as Partial<Layer>,
         })
       }
       return
