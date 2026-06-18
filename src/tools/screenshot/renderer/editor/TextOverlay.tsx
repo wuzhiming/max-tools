@@ -20,7 +20,7 @@ export function TextOverlay({ x, y, fontSize, color, fontFamily, onCommit, onCan
     <textarea
       ref={ref}
       className="text-edit-input"
-      style={{ left: x, top: y, fontSize, color, fontFamily }}
+      style={{ position: 'fixed', left: x, top: y, fontSize, color, fontFamily, zIndex: 9999 }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
           e.preventDefault()

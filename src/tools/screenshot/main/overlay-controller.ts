@@ -140,8 +140,6 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
       } else {
         win.loadFile(loadFilePath!)
       }
-      // Always open DevTools detached so we can see renderer errors
-      win.webContents.openDevTools({ mode: 'detach' })
 
       win.webContents.once('did-finish-load', () => {
         log.info('overlay window did-finish-load, displayId=', idx, 'destroyed=', win.isDestroyed())

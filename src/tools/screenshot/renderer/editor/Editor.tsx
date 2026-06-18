@@ -29,7 +29,7 @@ export function Editor() {
   const { state, dispatch } = useEditorStore()
   const dragRef = useRef<{ startX: number; startY: number; tempId: string } | null>(null)
   const selectDragRef = useRef<{ id: string; startX: number; startY: number; origin: Layer } | null>(null)
-  const [textPos, setTextPos] = useState<{ x: number; y: number } | null>(null)
+  const [textPos, setTextPos] = useState<{ canvasX: number; canvasY: number; cssX: number; cssY: number } | null>(null)
 
   useEffect(() => {
     const off = window.mt.on(window.mt.SS_IPC.EditorInit, (p) => setInit(p as InitPayload))
@@ -43,7 +43,7 @@ export function Editor() {
     img.src = `file://${init.imagePath}`
   }, [init])
 
-  function onDown(x: number, y: number) {
+  function onDown(x: number, y: number, e: React.MouseEvent) {
     if (state.activeTool === 'select') {
       const hit = hitTest(state.history.current, x, y)
       dispatch({ type: 'SELECT_LAYER', id: hit?.id ?? null })
@@ -104,7 +104,7 @@ export function Editor() {
       return
     }
     if (state.activeTool === 'text') {
-      setTextPos({ x, y })
+      setTextPos({ canvasX: x, canvasY: y, cssX: e.clientX, cssY: e.clientY })
       return
     }
     if (state.activeTool === 'blur') {
@@ -270,8 +270,8 @@ export function Editor() {
         />
         {textPos && (
           <TextOverlay
-            x={textPos.x}
-            y={textPos.y}
+            x={textPos.cssX}
+            y={textPos.cssY}
             fontSize={state.style.fontSize}
             color={state.style.color}
             fontFamily="-apple-system, sans-serif"
@@ -282,7 +282,7 @@ export function Editor() {
                   layer: {
                     id: newLayerId(),
                     type: 'text',
-                    pos: textPos,
+                    pos: { x: textPos.canvasX, y: textPos.canvasY },
                     content: text,
                     fontSize: state.style.fontSize,
                     color: state.style.color,

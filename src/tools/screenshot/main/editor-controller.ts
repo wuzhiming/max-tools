@@ -54,8 +54,6 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   log.info('creating editor window, url=', url ?? loadFilePath)
   if (url) win.loadURL(url)
   else win.loadFile(loadFilePath!)
-  // Always open DevTools detached so we can see renderer errors
-  win.webContents.openDevTools({ mode: 'detach' })
 
   win.webContents.on('console-message', (_e, _level, message, line, sourceId) => {
     log.info(`[editor-renderer] ${message}`, sourceId ? `(${sourceId}:${line})` : '')
