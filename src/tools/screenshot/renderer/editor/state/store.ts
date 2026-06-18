@@ -66,7 +66,7 @@ const initial: EditorState = {
   history: createHistory<Layer[]>([]),
   selectedLayerId: null,
   activeTool: 'rect',
-  style: { color: '#FF3B30', strokeWidth: 3, fontSize: 18, blockSize: 12, blurRadius: 8, blurMode: 'mosaic' },
+  style: { color: '#FF3B30', strokeWidth: 5, fontSize: 24, blockSize: 12, blurRadius: 8, blurMode: 'mosaic' },
 }
 
 export function useEditorStore() {
