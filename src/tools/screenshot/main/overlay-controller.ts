@@ -54,12 +54,10 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
   if (captured.length === 0) return { cancelled: true }
 
   return new Promise((resolve) => {
-    const settledKey = Symbol('settled')
     let settled = false
     const settle = (r: ShowOverlayResult) => {
       if (settled) return
       settled = true
-      ;(global as Record<string | symbol, unknown>)[settledKey] = true
       closeAll()
       cleanupIpc()
       resolve(r)
@@ -109,14 +107,11 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
     captured.forEach((cap, idx) => {
       const win = buildOverlayWindow(cap)
       activeOverlays.push(win)
-      win.on('blur', () => {
-        // 任意叠层失焦：关闭所有并取消
-        settle({ cancelled: true })
-      })
       win.on('closed', () => {
         if (!settled) settle({ cancelled: true })
       })
       win.webContents.on('before-input-event', (_event, input) => {
+        if (win.isDestroyed()) return
         if (input.type === 'keyDown' && input.key === 'Escape') {
           settle({ cancelled: true })
         }
@@ -132,6 +127,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
       }
 
       win.webContents.once('did-finish-load', () => {
+        if (win.isDestroyed() || win.webContents.isDestroyed()) return
         const payload: OverlayInitPayload = {
           imagePath: cap.imagePath,
           displayBounds: cap.display.bounds,
@@ -142,6 +138,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
         }
         // 渲染层用 displayId = 数组索引
         win.webContents.send(SS_IPC.OverlayInit, { ...payload, displayId: idx })
+        if (win.isDestroyed()) return
         // 确保窗口可见并获得键盘焦点（macOS 透明 + 全屏置顶有时不自动给焦点）
         win.show()
         win.focus()
