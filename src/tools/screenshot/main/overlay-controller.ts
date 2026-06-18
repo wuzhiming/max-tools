@@ -67,7 +67,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
 
     const closeAll = () => {
       for (const w of activeOverlays) {
-        if (!w.isDestroyed()) w.close()
+        if (!w.isDestroyed()) w.destroy()
       }
       activeOverlays = []
     }
@@ -116,6 +116,11 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
       win.on('closed', () => {
         if (!settled) settle({ cancelled: true })
       })
+      win.webContents.on('before-input-event', (_event, input) => {
+        if (input.type === 'keyDown' && input.key === 'Escape') {
+          settle({ cancelled: true })
+        }
+      })
 
       const url = process.env['ELECTRON_RENDERER_URL']
         ? `${process.env['ELECTRON_RENDERER_URL']}/src/tools/screenshot/renderer/overlay/index.html`
@@ -137,6 +142,10 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
         }
         // 渲染层用 displayId = 数组索引
         win.webContents.send(SS_IPC.OverlayInit, { ...payload, displayId: idx })
+        // 确保窗口可见并获得键盘焦点（macOS 透明 + 全屏置顶有时不自动给焦点）
+        win.show()
+        win.focus()
+        win.moveTop()
       })
     })
   })
