@@ -40,6 +40,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
       preload: join(__dirname, '../../../preload/index.js'),
       contextIsolation: true,
       sandbox: false,
+      webSecurity: false,
     },
   })
   activeEditor = win

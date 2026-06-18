@@ -32,6 +32,7 @@ function buildOverlayWindow(captured: CapturedDisplay): BrowserWindow {
       preload: join(__dirname, '../../../preload/index.js'),
       contextIsolation: true,
       sandbox: false,
+      webSecurity: false,
     },
   })
   win.setAlwaysOnTop(true, 'screen-saver')
