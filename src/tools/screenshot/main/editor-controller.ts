@@ -37,7 +37,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     skipTaskbar: true,
     backgroundColor: '#1c1c1e',
     webPreferences: {
-      preload: join(__dirname, '../../../preload/index.js'),
+      preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       sandbox: false,
       webSecurity: false,
@@ -50,7 +50,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     : null
   const loadFilePath = url
     ? null
-    : join(__dirname, '../../../renderer/src/tools/screenshot/renderer/editor/index.html')
+    : join(__dirname, '../renderer/src/tools/screenshot/renderer/editor/index.html')
   log.info('creating editor window, url=', url ?? loadFilePath)
   if (url) win.loadURL(url)
   else win.loadFile(loadFilePath!)

@@ -29,7 +29,7 @@ function buildOverlayWindow(captured: CapturedDisplay): BrowserWindow {
     enableLargerThanScreen: true,
     backgroundColor: '#00000000',
     webPreferences: {
-      preload: join(__dirname, '../../../preload/index.js'),
+      preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       sandbox: false,
       webSecurity: false,
@@ -133,7 +133,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
         : null
       const loadFilePath = url
         ? null
-        : join(__dirname, '../../../renderer/src/tools/screenshot/renderer/overlay/index.html')
+        : join(__dirname, '../renderer/src/tools/screenshot/renderer/overlay/index.html')
       log.info('creating overlay window for display', idx, 'url=', url ?? loadFilePath)
       if (url) {
         win.loadURL(url)
