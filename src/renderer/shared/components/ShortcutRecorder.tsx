@@ -1,6 +1,6 @@
 // src/renderer/shared/components/ShortcutRecorder.tsx
 import React, { useEffect, useState } from 'react'
-import { Button, Group, Kbd, Text } from '@mantine/core'
+import { ActionIcon, Button, Group, Kbd, Text, Tooltip } from '@mantine/core'
 import { IconKeyboard, IconX } from '@tabler/icons-react'
 
 interface Props {
@@ -65,7 +65,7 @@ export function ShortcutRecorder({ value, onChange, placeholder }: Props) {
   const display = draft ?? value ?? ''
 
   return (
-    <Group gap="xs" wrap="nowrap">
+    <Group gap={8} wrap="nowrap" align="center">
       {recording ? (
         <Button variant="light" color="yellow" size="xs">
           按下组合键…（Esc 取消）
@@ -80,30 +80,44 @@ export function ShortcutRecorder({ value, onChange, placeholder }: Props) {
             setDraft(null)
             setError(null)
           }}
-          styles={{ root: { minWidth: 160, justifyContent: 'flex-start' } }}
+          styles={{
+            root: { minWidth: 180, justifyContent: 'flex-start', paddingLeft: 10, paddingRight: 12 },
+            section: { marginRight: 8 },
+            label: { width: '100%', textAlign: 'left' },
+          }}
         >
-          {display ? <Kbd>{display}</Kbd> : <Text size="xs" c="dimmed">{placeholder ?? '未设置'}</Text>}
+          {display ? (
+            <Kbd style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+              {display}
+            </Kbd>
+          ) : (
+            <Text size="xs" c="dimmed">{placeholder ?? '未设置'}</Text>
+          )}
         </Button>
       )}
       {value && !recording && (
-        <Button
-          variant="subtle"
-          color="gray"
-          size="xs"
-          onClick={async () => {
-            await onChange('')
-            setDraft(null)
-          }}
-          aria-label="清除"
-        >
-          <IconX size={14} />
-        </Button>
+        <Tooltip label="清除快捷键" withArrow position="top">
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="md"
+            radius="sm"
+            onClick={async () => {
+              await onChange('')
+              setDraft(null)
+            }}
+            aria-label="清除"
+          >
+            <IconX size={14} />
+          </ActionIcon>
+        </Tooltip>
       )}
       {error && (
-        <Text size="xs" c="red">
+        <Text size="xs" c="red" ml={4}>
           {error}
         </Text>
       )}
     </Group>
   )
 }
+
