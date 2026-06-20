@@ -76,7 +76,7 @@ export function Toolbar() {
     })
     // tell main we're ready so editor can send initial status
     window.mt.send(window.mt.SS_IPC.ToolbarReady)
-    return off
+    return () => { off() }
   }, [])
 
   const send = (a: ToolbarActionPayload) =>

@@ -1,8 +1,8 @@
 // src/tools/screenshot/renderer/editor/Editor.tsx
 import React, { useEffect, useRef, useState } from 'react'
 import { CanvasView } from './canvas/CanvasView'
-import { useEditorStore } from './state/store'
-import { newLayerId, type Layer, type Rect } from './layers/types'
+import { useEditorStore, type EditorState } from './state/store'
+import { newLayerId, type Layer, type Rect, type ToolKind } from './layers/types'
 import './layers/rect'
 import './layers/ellipse'
 import './layers/arrow'
@@ -11,9 +11,9 @@ import './layers/text'
 import './layers/mosaic'
 import './layers/blur'
 import { TextOverlay } from './TextOverlay'
-import { Toolbar } from './toolbar/Toolbar'
 import { hitTest } from './canvas/hit'
 import { renderFilenameTemplate } from '@tools/screenshot/main/filename'
+import type { ToolbarActionPayload } from '@shared/types/screenshot-ipc'
 
 interface InitPayload {
   imagePath: string
@@ -230,6 +230,55 @@ export function Editor() {
     })
   }
 
+  // Keep refs to the latest export helpers so the long-lived IPC listener
+  // always sees current `init`.
+  const completeRef = useRef(exportAndComplete)
+  const saveAsRef = useRef(exportAndSaveAs)
+  completeRef.current = exportAndComplete
+  saveAsRef.current = exportAndSaveAs
+
+  // Receive actions from the floating toolbar window.
+  useEffect(() => {
+    const off = window.mt.on(window.mt.SS_IPC.ToolbarAction, (p) => {
+      const a = p as ToolbarActionPayload
+      switch (a.kind) {
+        case 'SET_TOOL':
+          dispatch({ type: 'SET_TOOL', tool: a.payload as ToolKind })
+          break
+        case 'SET_STYLE':
+          dispatch({
+            type: 'SET_STYLE',
+            patch: a.payload as Partial<EditorState['style']>,
+          })
+          break
+        case 'UNDO':
+          dispatch({ type: 'UNDO' })
+          break
+        case 'REDO':
+          dispatch({ type: 'REDO' })
+          break
+        case 'SAVE_AS':
+          saveAsRef.current()
+          break
+        case 'COMPLETE':
+          completeRef.current()
+          break
+        case 'CANCEL':
+          window.mt.send(window.mt.SS_IPC.EditorCancel)
+          break
+      }
+    })
+    return () => { off() }
+  }, [])
+
+  // Broadcast undo/redo availability so the toolbar can enable/disable buttons.
+  useEffect(() => {
+    window.mt.send(window.mt.SS_IPC.EditorStatus, {
+      canUndo: state.history.past.length > 0,
+      canRedo: state.history.future.length > 0,
+    })
+  }, [state.history.past.length, state.history.future.length])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (textPos) return
@@ -321,22 +370,6 @@ export function Editor() {
             )
           })()}
       </div>
-      <Toolbar
-        activeTool={state.activeTool}
-        setTool={(t) => dispatch({ type: 'SET_TOOL', tool: t })}
-        color={state.style.color}
-        setColor={(c) => dispatch({ type: 'SET_STYLE', patch: { color: c } })}
-        strokeWidth={state.style.strokeWidth}
-        setStrokeWidth={(n) => dispatch({ type: 'SET_STYLE', patch: { strokeWidth: n } })}
-        blurMode={state.style.blurMode}
-        setBlurMode={(m) => dispatch({ type: 'SET_STYLE', patch: { blurMode: m } })}
-        canUndo={state.history.past.length > 0}
-        canRedo={state.history.future.length > 0}
-        onUndo={() => dispatch({ type: 'UNDO' })}
-        onRedo={() => dispatch({ type: 'REDO' })}
-        onSaveAs={() => exportAndSaveAs()}
-        onComplete={() => exportAndComplete()}
-      />
     </div>
   )
 }

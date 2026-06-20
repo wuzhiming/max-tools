@@ -2,16 +2,4 @@
 .editor-root { display: flex; flex-direction: column; height: 100vh; }
 .editor-canvas-wrap { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; -webkit-app-region: no-drag; }
 .editor-canvas { display: block; box-shadow: 0 4px 20px rgba(0,0,0,0.5); cursor: crosshair; }
-.editor-toolbar {
-  min-height: 48px;
-  background: #2c2c2e;
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  -webkit-app-region: no-drag;
-  color: white;
-  font-family: -apple-system, sans-serif;
-  font-size: 12px;
-  border-top: 1px solid #3a3a3c;
-}
 .text-edit-input { position: absolute; background: rgba(0,0,0,0.6); color: white; border: 1px dashed #fff; padding: 4px 6px; font-size: 16px; outline: none; }
