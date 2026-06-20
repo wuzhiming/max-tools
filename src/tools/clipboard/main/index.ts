@@ -12,7 +12,7 @@
 // system clipboard, then re-activate the app that was frontmost when
 // the hotkey fired (we cache its bundle id), then fire ⌘V at it.
 
-import { clipboard, ipcMain, nativeImage, type NativeImage } from 'electron'
+import { clipboard, dialog, ipcMain, nativeImage, Notification, type NativeImage } from 'electron'
 import { createHash } from 'node:crypto'
 import type { ToolContext } from '@shared/types/tool-manifest'
 import {
@@ -29,12 +29,57 @@ import {
   showPicker,
 } from './picker-window'
 import { activateAndPaste, getFrontmostBundleId } from './paste'
+import { openPermissionPane } from '@main/permissions'
+import { showMainWindow } from '@main/main-window'
 
 const POLL_MS = 500
 const DEFAULT_MAX_QUEUE = 30
 const MAX_TEXT_BYTES = 256 * 1024
 const THUMB_HEIGHT = 56
 const PREVIEW_HEIGHT = 320
+
+/** Throttle the "permission missing" prompt so a user who hits ⌘⇧V five
+ *  times in a row doesn't get five stacked dialogs / notifications. */
+let lastPermNotifyAt = 0
+const PERM_NOTIFY_COOLDOWN_MS = 60_000
+
+function showPermissionPrompt(): void {
+  const now = Date.now()
+  if (now - lastPermNotifyAt < PERM_NOTIFY_COOLDOWN_MS) return
+  lastPermNotifyAt = now
+
+  // Best-effort notification (banner in Notification Centre). May silently
+  // fail if the user hasn't granted notification access to our binary —
+  // that's why we ALSO open the main window + show a modal below.
+  if (Notification.isSupported()) {
+    const n = new Notification({
+      title: 'Max Tools 无法自动粘贴',
+      body: '需要「辅助功能」权限来模拟 ⌘V。点此前往系统设置授权。',
+    })
+    n.on('click', () => openPermissionPane('accessibility'))
+    n.show()
+  }
+
+  // Open the main window on the General page so the user can see the
+  // permission self-check panel right next to the modal.
+  showMainWindow('/settings/general')
+
+  // Hard guarantee: a modal dialog the user can't miss.
+  void dialog
+    .showMessageBox({
+      type: 'warning',
+      title: 'Max Tools 无法自动粘贴',
+      message: '需要「辅助功能」权限来模拟 ⌘V',
+      detail:
+        '在「系统设置 → 隐私与安全性 → 辅助功能」中勾选 Max Tools（开发模式下显示为 Electron）。授权后无需重启。',
+      buttons: ['打开系统设置', '稍后'],
+      defaultId: 0,
+      cancelId: 1,
+    })
+    .then((r) => {
+      if (r.response === 0) openPermissionPane('accessibility')
+    })
+}
 
 interface InternalImageEntry extends ImageEntry {
   /** Kept main-side so we can paste it back without re-encoding. */
@@ -173,8 +218,21 @@ export async function initClipboardTool(ctx: ToolContext): Promise<void> {
     closePicker()
     frontBeforePicker = null
 
+    ctx.log.info(`pick: pasting back to ${target ?? '(no target — manual ⌘V required)'}`)
     activateAndPaste(target, 60).catch((err) => {
-      ctx.log.warn('activateAndPaste failed (Accessibility permission?)', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      // macOS error code 1002 = "osascript is not allowed to send keystrokes"
+      // = Accessibility permission not granted to our binary. This is by far
+      // the most common failure mode; everything else (osascript missing,
+      // sandbox weirdness) is rare enough that one generic notification is
+      // fine.
+      const isAccessibilityDenied = msg.includes('1002') || msg.includes('not allowed to send keystrokes')
+      if (isAccessibilityDenied) {
+        ctx.log.warn('paste blocked: Accessibility permission not granted')
+        showPermissionPrompt()
+      } else {
+        ctx.log.warn('activateAndPaste failed', err)
+      }
     })
   }
   const onCancel = (): void => {
@@ -187,9 +245,19 @@ export async function initClipboardTool(ctx: ToolContext): Promise<void> {
   // Hotkey
   const combo = ctx.store.get<string>('shortcuts.showPicker', '') || 'CommandOrControl+Shift+V'
   const r = await ctx.registerShortcut('showPicker', combo, () => {
-    // Capture frontmost BEFORE showPicker so it's still the user's app, not us.
-    getFrontmostBundleId().then((id) => { frontBeforePicker = id }).catch(() => {})
-    showPicker({ entries: toIpcEntries() })
+    // Capture frontmost BEFORE showPicker. showPicker creates a window
+    // with alwaysOnTop('screen-saver') which steals focus immediately;
+    // if we let osascript race against that, by the time it returns
+    // (~100–500ms) the frontmost is already Max Tools itself, and the
+    // synthetic ⌘V later lands in our own app (no-op).
+    //
+    // So: block on the lookup first, then open. The ~150ms latency is
+    // imperceptible compared to the picker fade-in.
+    void (async () => {
+      frontBeforePicker = await getFrontmostBundleId().catch(() => null)
+      ctx.log.info(`hotkey: frontmost before picker = ${frontBeforePicker ?? '(unknown)'}`)
+      showPicker({ entries: toIpcEntries() })
+    })()
   })
   if (!r.ok) ctx.log.warn('showPicker shortcut registration failed:', r.reason)
 }
