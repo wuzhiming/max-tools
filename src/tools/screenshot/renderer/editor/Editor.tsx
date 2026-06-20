@@ -12,7 +12,7 @@ import './layers/mosaic'
 import './layers/blur'
 import { TextOverlay } from './TextOverlay'
 import { SelectionOverlay, type CanvasDims } from './SelectionOverlay'
-import { hitTest } from './canvas/hit'
+import { hitTest, hitTestBorder } from './canvas/hit'
 import { renderFilenameTemplate } from '@tools/screenshot/main/filename'
 import type { ToolbarActionPayload } from '@shared/types/screenshot-ipc'
 
@@ -85,6 +85,20 @@ export function Editor() {
         setIsMouseDragging(true)
       }
       return
+    }
+    // For drawing tools, first see whether the click landed on the *border*
+    // of an existing layer — if so, treat it as a select-and-drag so the user
+    // can move/edit without switching to the pointer tool. Hollow interiors
+    // (e.g. inside an empty rectangle) still let the user start a new shape.
+    {
+      const borderHit = hitTestBorder(state.history.current, x, y)
+      if (borderHit) {
+        dispatch({ type: 'SELECT_LAYER', id: borderHit.id })
+        selectDragRef.current = { id: borderHit.id, startX: x, startY: y, origin: borderHit }
+        dispatch({ type: 'BEGIN_DRAG' })
+        setIsMouseDragging(true)
+        return
+      }
     }
     if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
       const id = newLayerId()

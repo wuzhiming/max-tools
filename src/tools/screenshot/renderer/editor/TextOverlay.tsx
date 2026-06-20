@@ -11,6 +11,11 @@ interface Props {
   onCancel: () => void
 }
 
+/**
+ * Inline text editor. Visually mimics a snipping tool's text affordance:
+ * a thin bordered box that shows exactly what will be drawn on the canvas
+ * after commit (same fontSize, same color, no chrome that survives).
+ */
 export function TextOverlay({ x, y, fontSize, color, fontFamily, onCommit, onCancel }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
@@ -20,24 +25,28 @@ export function TextOverlay({ x, y, fontSize, color, fontFamily, onCommit, onCan
   return (
     <textarea
       ref={ref}
-      placeholder="输入文字，Cmd+Enter 提交，Esc 取消"
       style={{
         position: 'fixed',
         left: x,
         top: y,
         zIndex: 9999,
-        minWidth: 160,
-        minHeight: Math.max(28, fontSize * 1.6),
-        padding: '4px 8px',
+        minWidth: Math.max(40, fontSize * 2),
+        minHeight: Math.max(fontSize * 1.4, 20),
+        padding: '1px 3px',
+        margin: 0,
         fontSize,
+        lineHeight: 1.2,
         color,
         fontFamily,
-        background: 'rgba(0, 0, 0, 0.65)',
-        border: '1px dashed rgba(255,255,255,0.8)',
-        borderRadius: 4,
+        background: 'transparent',
+        border: '1px dashed rgba(0, 122, 255, 0.85)',
+        borderRadius: 2,
         outline: 'none',
         resize: 'both',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+        caretColor: color,
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.6)',
+        whiteSpace: 'pre',
+        overflow: 'hidden',
       }}
       onKeyDown={(e) => {
         e.stopPropagation()
