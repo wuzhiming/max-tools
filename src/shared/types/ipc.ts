@@ -13,6 +13,8 @@ export const IPC = {
   DialogSaveFile: 'app/dialog-save-file',
   GetPermissions: 'app/get-permissions',
   OpenPermissionPane: 'app/open-permission-pane',
+  GetAutoLaunch: 'app/get-auto-launch',
+  SetAutoLaunch: 'app/set-auto-launch',
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

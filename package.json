@@ -9,6 +9,7 @@
     "preview": "electron-vite preview",
     "package": "electron-vite build && electron-builder --mac",
     "package:dir": "electron-vite build && electron-builder --mac --dir",
+    "package:dmg": "node scripts/build-dmg.js",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -30,6 +31,7 @@
       "**/node_modules/sharp/**",
       "**/node_modules/@img/**"
     ],
+    "afterSign": "scripts/notarize.js",
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
@@ -41,12 +43,13 @@
           ]
         }
       ],
-      "identity": null,
-      "hardenedRuntime": false,
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
         "NSScreenCaptureUsageDescription": "Max Tools 需要屏幕录制权限来截图。",
-        "NSAccessibilityUsageDescription": "Max Tools 需要辅助功能权限来识别窗口几何，用于截图时的窗口高亮。"
+        "NSAccessibilityUsageDescription": "Max Tools 需要辅助功能权限：用于截图时的窗口几何识别，以及剪切板选择器粘贴时的键盘事件模拟。"
       }
     }
   },
@@ -62,6 +65,7 @@
     "sharp": "^0.33.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.3.0",
     "@types/node": "^20.11.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",

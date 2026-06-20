@@ -80,6 +80,20 @@ function registerAppIpc(): void {
   ipcMain.handle(IPC.OpenPermissionPane, (_e, kind: 'screen' | 'accessibility') =>
     openPermissionPane(kind),
   )
+  ipcMain.handle(IPC.GetAutoLaunch, () => {
+    // Source of truth is the OS — query directly so we don't drift if the
+    // user toggled it from System Settings or another app.
+    return app.getLoginItemSettings().openAtLogin
+  })
+  ipcMain.handle(IPC.SetAutoLaunch, (_e, enabled: boolean) => {
+    app.setLoginItemSettings({
+      openAtLogin: !!enabled,
+      // Tray-only app — start hidden so the user doesn't get a flash of
+      // main window at login.
+      openAsHidden: !!enabled,
+    })
+    return app.getLoginItemSettings().openAtLogin
+  })
 }
 
 app.whenReady().then(async () => {
