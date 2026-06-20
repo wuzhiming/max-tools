@@ -49,6 +49,8 @@ export interface ShowOverlayResult {
   displayBounds?: { x: number; y: number; width: number; height: number }
   /** Mode the user picked via the in-overlay toolbar. */
   mode?: 'normal' | 'scroll'
+  /** Optional editor tool to pre-select (user clicked an annotation icon). */
+  initialTool?: 'rect' | 'ellipse' | 'arrow' | 'pen' | 'blur' | 'text'
 }
 
 export async function showOverlays(): Promise<ShowOverlayResult> {
@@ -89,6 +91,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
           region: payload.regionInImagePixels,
           displayBounds: cap.display.bounds,
           mode,
+          initialTool: payload.initialTool,
         })
         return
       }
@@ -107,6 +110,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
           region: payload.regionInImagePixels,
           displayBounds: cap.display.bounds,
           mode,
+          initialTool: payload.initialTool,
         })
       } catch (err) {
         log.error('crop failed', err)

@@ -7,7 +7,6 @@ export const screenshotManifest: ToolManifest = {
   defaultShortcuts: {
     region: 'CommandOrControl+Shift+A',
     fullscreen: 'CommandOrControl+Shift+F',
-    scroll: 'CommandOrControl+Shift+R',
   },
   init: initScreenshotTool,
 }

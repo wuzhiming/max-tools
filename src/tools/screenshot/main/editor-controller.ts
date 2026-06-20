@@ -27,6 +27,8 @@ export interface OpenEditorArgs {
   resolveSaveDir: () => string
   /** 用户完成一次另存为后回调，参数是实际保存到的完整路径 */
   onSaved?: (savedPath: string) => void
+  /** 可选：编辑器加载完成后预选的标注工具 */
+  initialTool?: 'rect' | 'ellipse' | 'arrow' | 'pen' | 'blur' | 'text'
 }
 
 // The toolbar window is much larger than the visible pill: extra transparent
@@ -106,6 +108,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
       pixelWidth: args.pixelWidth,
       pixelHeight: args.pixelHeight,
       filenameTemplate: args.filenameTemplate,
+      initialTool: args.initialTool,
     })
   })
 

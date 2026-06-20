@@ -5,7 +5,7 @@ import type { Rect } from '@tools/screenshot/main/dpi'
 import { SelectionRect } from './SelectionRect'
 import { Magnifier } from './Magnifier'
 import { WindowHighlight, findHoveredWindow } from './WindowHighlight'
-import { SelectionToolbar } from './SelectionToolbar'
+import { SelectionToolbar, type AnnotationTool } from './SelectionToolbar'
 import { useImagePixels, pickColor } from './useImagePixels'
 import { cssToImage, clampRectInBounds } from '@tools/screenshot/main/dpi'
 
@@ -96,7 +96,7 @@ export function Overlay() {
     }
   }
 
-  function confirmRect(r: Rect, mode: 'normal' | 'scroll') {
+  function confirmRect(r: Rect, mode: 'normal' | 'scroll', initialTool?: AnnotationTool) {
     if (!init) return
     const n = normalizeRect(r)
     const inImg = cssToImage(n, init.devicePixelRatio)
@@ -107,6 +107,7 @@ export function Overlay() {
       regionInImagePixels: clamped,
       pickedColor: color ?? undefined,
       mode,
+      initialTool,
     })
   }
 
@@ -131,6 +132,7 @@ export function Overlay() {
         <SelectionToolbar
           rect={pendingRect}
           viewport={{ width: window.innerWidth, height: window.innerHeight }}
+          onAnnotate={(tool) => confirmRect(pendingRect, 'normal', tool)}
           onConfirm={() => confirmRect(pendingRect, 'normal')}
           onScroll={() => confirmRect(pendingRect, 'scroll')}
           onCancel={() => setPendingRect(null)}

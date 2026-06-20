@@ -88,6 +88,7 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
       filenameTemplate: getTemplate(),
       resolveSaveDir: getSaveDir,
       onSaved: rememberSaveDir,
+      initialTool: r.initialTool,
     })
   }
 
@@ -156,21 +157,11 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     })
   }
 
-  async function runScrollFlow(): Promise<void> {
-    ctx.log.info('runScrollFlow triggered')
-    if (!(await checkPermissionWithUserPrompt())) return
-    const sel = await showOverlays()
-    if (sel.cancelled) return
-    await scrollCaptureFromSelection(sel)
-  }
-
   // 注册快捷键（store 中已保存的优先，否则用默认）
   const regionCombo =
     ctx.store.get<string>('shortcuts.region', '') || 'CommandOrControl+Shift+A'
   const fullscreenCombo =
     ctx.store.get<string>('shortcuts.fullscreen', '') || 'CommandOrControl+Shift+F'
-  const scrollCombo =
-    ctx.store.get<string>('shortcuts.scroll', '') || 'CommandOrControl+Shift+R'
 
   const r1 = await ctx.registerShortcut('region', regionCombo, () => {
     runRegionFlow().catch((e) => ctx.log.error(e))
@@ -181,9 +172,4 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     runFullscreenFlow().catch((e) => ctx.log.error(e))
   })
   if (!r2.ok) ctx.log.warn('fullscreen shortcut registration failed:', r2.reason)
-
-  const r3 = await ctx.registerShortcut('scroll', scrollCombo, () => {
-    runScrollFlow().catch((e) => ctx.log.error(e))
-  })
-  if (!r3.ok) ctx.log.warn('scroll shortcut registration failed:', r3.reason)
 }

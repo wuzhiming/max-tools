@@ -66,6 +66,10 @@ export interface OverlaySelectedPayload {
   /** Capture mode chosen via the in-overlay toolbar. Defaults to 'normal'
    *  for backward compatibility (Enter key / legacy callers). */
   mode?: 'normal' | 'scroll'
+  /** Optional editor tool to pre-select. Used when the user picks an
+   *  annotation icon (rect/text/etc.) from the overlay toolbar — saves
+   *  one click after the editor opens. */
+  initialTool?: 'rect' | 'ellipse' | 'arrow' | 'pen' | 'blur' | 'text'
 }
 
 export interface ToolbarActionPayload {

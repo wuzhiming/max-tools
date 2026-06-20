@@ -57,11 +57,8 @@ function toolSubmenu(toolId: string): Electron.MenuItemConstructorOptions[] | nu
       accelerator: comboToAccelerator(shortcuts['fullscreen']),
       click: () => { invokeToolAction('screenshot', 'fullscreen') },
     },
-    {
-      label: '长截图（滚动）',
-      accelerator: comboToAccelerator(shortcuts['scroll']),
-      click: () => { invokeToolAction('screenshot', 'scroll') },
-    },
+    // Long-screenshot is no longer a direct shortcut entry — it lives in
+    // the floating toolbar that appears once a region is selected.
   ]
 }
 

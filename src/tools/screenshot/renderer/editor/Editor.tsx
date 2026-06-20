@@ -21,6 +21,7 @@ interface InitPayload {
   pixelWidth: number
   pixelHeight: number
   filenameTemplate: string
+  initialTool?: ToolKind
 }
 
 export function Editor() {
@@ -35,7 +36,13 @@ export function Editor() {
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const off = window.mt.on(window.mt.SS_IPC.EditorInit, (p) => setInit(p as InitPayload))
+    const off = window.mt.on(window.mt.SS_IPC.EditorInit, (p) => {
+      const payload = p as InitPayload
+      setInit(payload)
+      if (payload.initialTool) {
+        dispatch({ type: 'SET_TOOL', tool: payload.initialTool })
+      }
+    })
     return () => { off() }
   }, [])
 
