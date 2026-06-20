@@ -215,6 +215,7 @@ export function Toolbar() {
           }
         }}
         allowDeselect={false}
+        withCheckIcon={false}
         aria-label="线宽"
       />
 
