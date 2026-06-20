@@ -11,6 +11,7 @@ import './layers/text'
 import './layers/mosaic'
 import './layers/blur'
 import { TextOverlay } from './TextOverlay'
+import { SelectionOverlay, type CanvasDims } from './SelectionOverlay'
 import { hitTest } from './canvas/hit'
 import { renderFilenameTemplate } from '@tools/screenshot/main/filename'
 import type { ToolbarActionPayload } from '@shared/types/screenshot-ipc'
@@ -30,6 +31,8 @@ export function Editor() {
   const dragRef = useRef<{ startX: number; startY: number; tempId: string } | null>(null)
   const selectDragRef = useRef<{ id: string; startX: number; startY: number; origin: Layer } | null>(null)
   const [textPos, setTextPos] = useState<{ canvasX: number; canvasY: number; cssX: number; cssY: number } | null>(null)
+  const [canvasDims, setCanvasDims] = useState<CanvasDims | null>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const off = window.mt.on(window.mt.SS_IPC.EditorInit, (p) => setInit(p as InitPayload))
@@ -42,6 +45,34 @@ export function Editor() {
     img.onload = () => setBase(img)
     img.src = `file://${init.imagePath}`
   }, [init])
+
+  // Track canvas CSS dims + scale so overlays (selection handles, text editor)
+  // can position themselves in CSS px while layer coords stay in canvas px.
+  useEffect(() => {
+    if (!init || !baseImage) return
+    const wrap = wrapRef.current
+    if (!wrap) return
+    const update = () => {
+      const c = wrap.querySelector('canvas.editor-canvas') as HTMLCanvasElement | null
+      if (!c) return
+      const wrapRect = wrap.getBoundingClientRect()
+      const cRect = c.getBoundingClientRect()
+      setCanvasDims({
+        left: cRect.left - wrapRect.left,
+        top: cRect.top - wrapRect.top,
+        width: cRect.width,
+        height: cRect.height,
+        scaleX: cRect.width / init.pixelWidth,
+        scaleY: cRect.height / init.pixelHeight,
+      })
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(wrap)
+    const c = wrap.querySelector('canvas.editor-canvas')
+    if (c) ro.observe(c)
+    return () => ro.disconnect()
+  }, [init, baseImage])
 
   function onDown(x: number, y: number, e: React.MouseEvent) {
     if (state.activeTool === 'select') {
@@ -144,25 +175,34 @@ export function Editor() {
       const dx = x - selectDragRef.current.startX
       const dy = y - selectDragRef.current.startY
       const o = selectDragRef.current.origin
+      const id = o.id
+      const translate = (patch: Partial<Layer>) =>
+        dispatch({ type: 'UPDATE_LAYER_DRAFT', id, patch })
       if (o.type === 'rect' || o.type === 'ellipse') {
-        dispatch({
-          type: 'UPDATE_LAYER_DRAFT',
-          id: o.id,
-          patch: { bounds: { ...o.bounds, x: o.bounds.x + dx, y: o.bounds.y + dy } },
-        })
+        translate({ bounds: { ...o.bounds, x: o.bounds.x + dx, y: o.bounds.y + dy } })
       } else if (o.type === 'text') {
-        dispatch({
-          type: 'UPDATE_LAYER_DRAFT',
-          id: o.id,
-          patch: { pos: { x: o.pos.x + dx, y: o.pos.y + dy } },
+        translate({ pos: { x: o.pos.x + dx, y: o.pos.y + dy } })
+      } else if (o.type === 'arrow') {
+        translate({
+          from: { x: o.from.x + dx, y: o.from.y + dy },
+          to: { x: o.to.x + dx, y: o.to.y + dy },
         })
-      } else if ((o.type === 'mosaic' || o.type === 'blur') && o.region.kind === 'rect') {
-        const b = o.region.bounds
-        dispatch({
-          type: 'UPDATE_LAYER_DRAFT',
-          id: o.id,
-          patch: { region: { kind: 'rect', bounds: { ...b, x: b.x + dx, y: b.y + dy } } } as Partial<Layer>,
-        })
+      } else if (o.type === 'pen') {
+        translate({ points: o.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) })
+      } else if (o.type === 'mosaic' || o.type === 'blur') {
+        if (o.region.kind === 'rect') {
+          const b = o.region.bounds
+          translate({
+            region: { kind: 'rect', bounds: { ...b, x: b.x + dx, y: b.y + dy } },
+          } as Partial<Layer>)
+        } else {
+          translate({
+            region: {
+              ...o.region,
+              points: o.region.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+            },
+          } as Partial<Layer>)
+        }
       }
       return
     }
@@ -230,14 +270,11 @@ export function Editor() {
     })
   }
 
-  // Keep refs to the latest export helpers so the long-lived IPC listener
-  // always sees current `init`.
   const completeRef = useRef(exportAndComplete)
   const saveAsRef = useRef(exportAndSaveAs)
   completeRef.current = exportAndComplete
   saveAsRef.current = exportAndSaveAs
 
-  // Receive actions from the floating toolbar window.
   useEffect(() => {
     const off = window.mt.on(window.mt.SS_IPC.ToolbarAction, (p) => {
       const a = p as ToolbarActionPayload
@@ -271,7 +308,6 @@ export function Editor() {
     return () => { off() }
   }, [])
 
-  // Broadcast undo/redo availability so the toolbar can enable/disable buttons.
   useEffect(() => {
     window.mt.send(window.mt.SS_IPC.EditorStatus, {
       canUndo: state.history.past.length > 0,
@@ -308,9 +344,17 @@ export function Editor() {
 
   if (!init) return null
 
+  // CSS font-size used by the inline text input. `state.style.fontSize` is the
+  // user-facing CSS size; we convert to canvas units only when persisting so
+  // the on-canvas glyph matches the textarea pixel-for-pixel.
+  const textScale = canvasDims?.scaleX ?? 1
+  const selectedLayer = state.selectedLayerId
+    ? state.history.current.find((l) => l.id === state.selectedLayerId) ?? null
+    : null
+
   return (
     <div className="editor-root">
-      <div className="editor-canvas-wrap">
+      <div className="editor-canvas-wrap" ref={wrapRef}>
         <CanvasView
           baseImage={baseImage}
           layers={state.history.current}
@@ -336,7 +380,7 @@ export function Editor() {
                     type: 'text',
                     pos: { x: textPos.canvasX, y: textPos.canvasY },
                     content: text,
-                    fontSize: state.style.fontSize,
+                    fontSize: state.style.fontSize / textScale,
                     color: state.style.color,
                     fontFamily: '-apple-system, sans-serif',
                   },
@@ -347,28 +391,16 @@ export function Editor() {
             onCancel={() => setTextPos(null)}
           />
         )}
-        {state.selectedLayerId &&
-          (() => {
-            const l = state.history.current.find((x) => x.id === state.selectedLayerId)
-            if (!l) return null
-            let r: { x: number; y: number; w: number; h: number } | null = null
-            if (l.type === 'rect' || l.type === 'ellipse') r = l.bounds
-            else if ((l.type === 'mosaic' || l.type === 'blur') && l.region.kind === 'rect') r = l.region.bounds
-            if (!r) return null
-            return (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: r.x,
-                  top: r.y,
-                  width: Math.abs(r.w),
-                  height: Math.abs(r.h),
-                  border: '1px dashed #fff',
-                  pointerEvents: 'none',
-                }}
-              />
-            )
-          })()}
+        {selectedLayer && canvasDims && (
+          <SelectionOverlay
+            layer={selectedLayer}
+            canvasDims={canvasDims}
+            onPatchBegin={() => dispatch({ type: 'BEGIN_DRAG' })}
+            onPatch={(patch) =>
+              dispatch({ type: 'UPDATE_LAYER_DRAFT', id: selectedLayer.id, patch })
+            }
+          />
+        )}
       </div>
     </div>
   )
