@@ -2,6 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **状态（2026-06-20）**：本文是 2026-06-17 的初始实施计划，记录了项目从 0→1 的 TDD 步骤序列。**已全部执行完毕**，作为归档保留（不再回写后续变更）。完成之后又叠加了下列改动，**请以代码 / `README.md` 为准**：
+>
+> - **第二个工具**：`src/tools/clipboard/`（剪切板选择器），按本文 §基座（Task 5-9）建立的 `ToolManifest` 契约接入，无需改主程序。
+> - **基座 enable/disable**：`src/main/tool-registry.ts` 新增 `isToolEnabled` / `setToolEnabled`，禁用时立即 `unregisterAllForTool` 并广播 `tools/changed`；侧栏与托盘据此渲染"（已禁用）"态。`ToolSummary` 加 `enabled: boolean`。
+> - **开机启动**：Task 11 Step 4 的"待实现"占位已落实，IPC 通道 `app/get-auto-launch` / `app/set-auto-launch`，主进程调 `app.setLoginItemSettings({ openAtLogin, openAsHidden: true })`。
+> - **UI 框架**：全栈迁移到 Mantine v7（参见 `dbe45d5..fc87c5d` 段提交）。本文 §Task 11-13 / 41 写的手写 CSS / 自制 Toggle 已被替换为 Mantine 等价组件。`ShortcutRecorder` 已重写为 `Group + Button + Kbd + ActionIcon`。
+> - **签名 + 公证 DMG**：本文 Task 1 的 `package.json` 与最终版本差异较大（缺 `mantine` / `@tabler/icons-react` / `clsx` / `@electron/notarize`，缺 `package:dmg` script，缺 `mac.hardenedRuntime` / `mac.entitlements` / `mac.notarize: false` / `publish: null` / `afterSign`）。打包流程见 `scripts/build-dmg.js` + `scripts/notarize.js` + `build/entitlements.mac.plist`。
+> - **测试 mock 漂移**：Task 8 的 `tests/unit/tool-registry.test.ts` mock 块比文中多出 `appStore` / `unregisterAllForTool` / `listShortcuts`，因为 `tool-registry` 现在用到这些。
+
+---
+
 **Goal:** 构建一个 macOS 菜单栏常驻的多工具桌面应用，首期实现可稳定截 macOS 右键菜单的截图工具（含编辑器、取色、马赛克、文字、形状、快捷键配置），架构层面留好可插拔工具的扩展点。
 
 **Architecture:** Electron 主进程承担应用壳 / 工具注册 / 全局快捷键 / 权限协调；每个工具是 `src/tools/<id>/` 下的自治模块，实现统一的 `ToolManifest`，主进程的 `tool-registry` 启动时扫描并初始化；截图工具通过 shell out 到 macOS `screencapture` CLI 抓屏（避免 Electron `desktopCapturer` 截不到系统级浮层的问题），再用 transparent BrowserWindow 叠层让用户做选区/标注。

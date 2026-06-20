@@ -4,6 +4,14 @@
 **首期范围**：截图工具（含编辑器、取色、马赛克、文字、形状、快捷键配置）+ 多工具可扩展架构
 **平台**：macOS 优先，架构预留 Windows 扩展点
 
+> **状态**：本文是 2026-06-17 的初始设计。截至 2026-06-20，下列项已偏离本文，**以代码 / `README.md` 为准**：
+>
+> - **第二个工具**已落地：`src/tools/clipboard/`（剪切板选择器，浮层选择历史项并模拟 ⌘V 粘贴）。本文 §1.x / §2.4 图示只画了截图。
+> - **基座增强**：每个工具自动获得"启用/禁用"开关，由基座统一管理（关闭即注销其全部全局快捷键 + 托盘项）。本文 §4 的 `ToolManifest` 未提到 enabled 状态，实际 `ToolSummary` 现已包含 `enabled: boolean`。
+> - **通用设置**：§7.3 提到"开机启动"为占位，现已实现（`app.setLoginItemSettings({ openAtLogin, openAsHidden: true })`，IPC 通道 `app/get-auto-launch` / `app/set-auto-launch`）。
+> - **UI 框架**：已全面迁移到 Mantine v7 + Tabler Icons + clsx。`ShortcutRecorder`、`SettingRow`、侧栏 `NavLink`、各设置页都用 Mantine 重写过；§7 的纯手写 CSS 草图与现状不符。
+> - **打包**：新增签名 + 公证 DMG 流程（`scripts/build-dmg.js` 做 env 别名映射；`scripts/notarize.js` 是 electron-builder afterSign 钩子，调 `@electron/notarize`；`build/entitlements.mac.plist` 启用 hardened runtime）。变量约定见 README。
+
 ---
 
 ## 1. 背景与目标
