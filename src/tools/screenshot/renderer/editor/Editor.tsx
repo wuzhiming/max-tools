@@ -20,7 +20,6 @@ interface InitPayload {
   imagePath: string
   pixelWidth: number
   pixelHeight: number
-  saveDir: string
   filenameTemplate: string
 }
 
@@ -317,11 +316,10 @@ export function Editor() {
   function exportAndSaveAs() {
     const dataUrl = exportCanvas()
     if (!dataUrl || !init) return
-    const name = renderFilenameTemplate(init.filenameTemplate) + '.png'
-    window.mt.send(window.mt.SS_IPC.EditorSaveAs, {
-      dataUrl,
-      suggestedPath: `${init.saveDir}/${name}`,
-    })
+    const filename = renderFilenameTemplate(init.filenameTemplate) + '.png'
+    // The directory is resolved on the main side at save time, so the
+    // user's most recent save always wins for the default folder.
+    window.mt.send(window.mt.SS_IPC.EditorSaveAs, { dataUrl, filename })
   }
 
   const completeRef = useRef(exportAndComplete)

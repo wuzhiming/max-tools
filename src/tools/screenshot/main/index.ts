@@ -77,8 +77,8 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
         width: cssRegion.w,
         height: cssRegion.h,
       },
-      saveDir: getSaveDir(),
       filenameTemplate: getTemplate(),
+      resolveSaveDir: getSaveDir,
       onSaved: rememberSaveDir,
     })
   }
@@ -93,8 +93,8 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
       pixelWidth: r.width,
       pixelHeight: r.height,
       windowBounds: r.displayBounds,
-      saveDir: getSaveDir(),
       filenameTemplate: getTemplate(),
+      resolveSaveDir: getSaveDir,
       onSaved: rememberSaveDir,
     })
   }

@@ -20,9 +20,11 @@ export interface OpenEditorArgs {
   pixelHeight: number
   /** 编辑器窗口希望放在屏幕上的位置（视觉无缝接管原选区） */
   windowBounds: { x: number; y: number; width: number; height: number }
-  /** 默认保存目录与文件名模板（用于另存为） */
-  saveDir: string
+  /** 文件名模板（用于另存为，每次 save 重新渲染） */
   filenameTemplate: string
+  /** 另存为对话框默认目录的实时解析器 —— 每次 save 现场调用，
+   *  保证用户上一次保存到的目录立刻成为这一次的默认目录 */
+  resolveSaveDir: () => string
   /** 用户完成一次另存为后回调，参数是实际保存到的完整路径 */
   onSaved?: (savedPath: string) => void
 }
@@ -103,7 +105,6 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
       imagePath: args.imagePath,
       pixelWidth: args.pixelWidth,
       pixelHeight: args.pixelHeight,
-      saveDir: args.saveDir,
       filenameTemplate: args.filenameTemplate,
     })
   })
@@ -179,12 +180,16 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   }
   const onSaveAs = async (
     _e: Electron.IpcMainEvent,
-    payload: { dataUrl: string; suggestedPath: string },
+    payload: { dataUrl: string; filename: string },
   ) => {
     try {
       const { dialog } = await import('electron')
+      // Resolve the directory at *save time* so the user's previous save
+      // (this session or persisted from earlier ones) is reflected immediately.
+      const dir = args.resolveSaveDir()
+      const defaultPath = join(dir, payload.filename)
       const r = await dialog.showSaveDialog(win, {
-        defaultPath: payload.suggestedPath,
+        defaultPath,
         filters: [
           { name: 'PNG', extensions: ['png'] },
           { name: 'JPEG', extensions: ['jpg'] },
