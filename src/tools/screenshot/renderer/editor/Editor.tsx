@@ -362,6 +362,9 @@ export function Editor() {
         case 'CANCEL':
           window.mt.send(window.mt.SS_IPC.EditorCancel)
           break
+        case 'START_SCROLL':
+          window.mt.send(window.mt.SS_IPC.EditorRequestScroll)
+          break
       }
     })
     return () => { off() }

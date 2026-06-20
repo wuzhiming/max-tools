@@ -28,6 +28,8 @@ export const SS_IPC = {
   ToolbarSetPassthrough: 'toolbar/set-passthrough',
   /** editor → main：图像已绘制到画布，主进程可以 show() 窗口了 */
   EditorPainted: 'editor/painted',
+  /** editor → main：用户在编辑器工具栏点了"长截图"按钮 */
+  EditorRequestScroll: 'editor/request-scroll',
   /** main → scroll-control：捕获状态广播（已抓帧数等） */
   ScrollStatus: 'scroll/status',
   /** scroll-control → main：用户点完成，触发拼接 */
@@ -63,17 +65,10 @@ export interface OverlaySelectedPayload {
   displayId: number
   regionInImagePixels: Rect
   pickedColor?: { hex: string; r: number; g: number; b: number }
-  /** Capture mode chosen via the in-overlay toolbar. Defaults to 'normal'
-   *  for backward compatibility (Enter key / legacy callers). */
-  mode?: 'normal' | 'scroll'
-  /** Optional editor tool to pre-select. Used when the user picks an
-   *  annotation icon (rect/text/etc.) from the overlay toolbar — saves
-   *  one click after the editor opens. */
-  initialTool?: 'rect' | 'ellipse' | 'arrow' | 'pen' | 'blur' | 'text'
 }
 
 export interface ToolbarActionPayload {
-  kind: 'SET_TOOL' | 'SET_STYLE' | 'UNDO' | 'REDO' | 'SAVE_AS' | 'COMPLETE' | 'CANCEL'
+  kind: 'SET_TOOL' | 'SET_STYLE' | 'UNDO' | 'REDO' | 'SAVE_AS' | 'COMPLETE' | 'CANCEL' | 'START_SCROLL'
   payload?: unknown
 }
 

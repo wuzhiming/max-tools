@@ -12,6 +12,7 @@ import {
   Tooltip,
 } from '@mantine/core'
 import {
+  IconArrowAutofitDown,
   IconArrowBackUp,
   IconArrowForwardUp,
   IconArrowUpRight,
@@ -170,6 +171,22 @@ export function Toolbar() {
           onClick={() => pickTool('text')}
         >
           <IconLetterT size={ICON_SIZE} />
+        </ActionIcon>
+      </Tooltip>
+
+      <Divider orientation="vertical" my={6} />
+
+      {/* Long screenshot — closes this editor, starts scroll capture of the
+          same region, reopens editor with the stitched image. */}
+      <Tooltip label="长截图（滚动拼接）" position="bottom" withArrow>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="lg"
+          aria-label="长截图"
+          onClick={() => send({ kind: 'START_SCROLL' })}
+        >
+          <IconArrowAutofitDown size={ICON_SIZE} />
         </ActionIcon>
       </Tooltip>
 

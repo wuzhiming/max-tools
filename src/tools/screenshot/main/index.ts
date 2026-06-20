@@ -56,6 +56,7 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     const r = await showOverlays()
     if (
       r.cancelled ||
+      !r.croppedPath ||
       !r.region ||
       !r.displayBounds ||
       r.width == null ||
@@ -63,19 +64,10 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     ) {
       return
     }
-    // The in-overlay toolbar lets the user pick the capture mode. If they
-    // chose 'scroll', divert to the polling+stitch pipeline using the
-    // region they just drew; otherwise it's the normal one-shot path.
-    if (r.mode === 'scroll') {
-      await scrollCaptureFromSelection(r)
-      return
-    }
-    if (!r.croppedPath) return
-    const { screen } = await import('electron')
     const display = screen.getDisplayMatching(r.displayBounds)
     const dpr = display.scaleFactor
     const cssRegion = imageToCss(r.region, dpr)
-    await openEditor({
+    const reason = await openEditor({
       imagePath: r.croppedPath,
       pixelWidth: r.width,
       pixelHeight: r.height,
@@ -88,8 +80,13 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
       filenameTemplate: getTemplate(),
       resolveSaveDir: getSaveDir,
       onSaved: rememberSaveDir,
-      initialTool: r.initialTool,
     })
+    // If the user hit the long-screenshot button on the editor toolbar the
+    // editor closes and we kick off scroll capture on the same region, then
+    // open a new editor on the stitched result.
+    if (reason === 'scroll-requested') {
+      await scrollCaptureFromSelection(r)
+    }
   }
 
   async function runFullscreenFlow(): Promise<void> {

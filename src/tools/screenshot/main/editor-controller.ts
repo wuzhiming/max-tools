@@ -27,9 +27,9 @@ export interface OpenEditorArgs {
   resolveSaveDir: () => string
   /** 用户完成一次另存为后回调，参数是实际保存到的完整路径 */
   onSaved?: (savedPath: string) => void
-  /** 可选：编辑器加载完成后预选的标注工具 */
-  initialTool?: 'rect' | 'ellipse' | 'arrow' | 'pen' | 'blur' | 'text'
 }
+
+export type EditorCloseReason = 'closed' | 'scroll-requested'
 
 // The toolbar window is much larger than the visible pill: extra transparent
 // padding above and below gives Mantine popovers / menus / tooltips room to
@@ -58,9 +58,17 @@ function computeToolbarPosition(editorBounds: Electron.Rectangle): { x: number; 
   return { x: tx, y: ty }
 }
 
-export async function openEditor(args: OpenEditorArgs): Promise<void> {
+export async function openEditor(args: OpenEditorArgs): Promise<EditorCloseReason> {
   if (activeEditor && !activeEditor.isDestroyed()) activeEditor.close()
   if (activeToolbar && !activeToolbar.isDestroyed()) activeToolbar.close()
+
+  // Deferred resolver: closeEditor() below resolves it with the recorded
+  // reason. Lets the caller (runRegionFlow) chain follow-up work like
+  // "user clicked long-screenshot → run scroll capture next".
+  let resolveClosed!: (r: EditorCloseReason) => void
+  const closedPromise = new Promise<EditorCloseReason>((res) => { resolveClosed = res })
+  let closeReason: EditorCloseReason = 'closed'
+  let closed = false
 
   const PADDING = 4
 
@@ -108,7 +116,6 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
       pixelWidth: args.pixelWidth,
       pixelHeight: args.pixelHeight,
       filenameTemplate: args.filenameTemplate,
-      initialTool: args.initialTool,
     })
   })
 
@@ -263,6 +270,11 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   const onEditorPainted = () => showBoth()
   const showFailsafe = setTimeout(showBoth, 1500)
 
+  const onRequestScroll = () => {
+    closeReason = 'scroll-requested'
+    closeEditor()
+  }
+
   ipcMain.on(SS_IPC.EditorComplete, onComplete)
   ipcMain.on(SS_IPC.EditorSaveAs, onSaveAs)
   ipcMain.on(SS_IPC.EditorCancel, onCancel)
@@ -271,8 +283,11 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   ipcMain.on(SS_IPC.EditorStatus, onEditorStatus)
   ipcMain.on(SS_IPC.ToolbarSetPassthrough, onToolbarSetPassthrough)
   ipcMain.on(SS_IPC.EditorPainted, onEditorPainted)
+  ipcMain.on(SS_IPC.EditorRequestScroll, onRequestScroll)
 
   const closeEditor = () => {
+    if (closed) return
+    closed = true
     clearTimeout(showFailsafe)
     if (activeEditor && !activeEditor.isDestroyed()) activeEditor.close()
     if (activeToolbar && !activeToolbar.isDestroyed()) activeToolbar.close()
@@ -286,6 +301,8 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     ipcMain.off(SS_IPC.EditorStatus, onEditorStatus)
     ipcMain.off(SS_IPC.ToolbarSetPassthrough, onToolbarSetPassthrough)
     ipcMain.off(SS_IPC.EditorPainted, onEditorPainted)
+    ipcMain.off(SS_IPC.EditorRequestScroll, onRequestScroll)
+    resolveClosed(closeReason)
   }
 
   win.on('closed', closeEditor)
@@ -294,4 +311,6 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     if (activeEditor && !activeEditor.isDestroyed()) activeEditor.close()
     activeToolbar = null
   })
+
+  return closedPromise
 }
