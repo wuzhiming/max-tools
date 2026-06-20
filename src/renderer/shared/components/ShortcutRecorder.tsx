@@ -65,7 +65,7 @@ export function ShortcutRecorder({ value, onChange, placeholder }: Props) {
   const display = draft ?? value ?? ''
 
   return (
-    <Group gap={8} wrap="nowrap" align="center">
+    <Group gap={12} wrap="nowrap" align="center">
       {recording ? (
         <Button variant="light" color="yellow" size="xs">
           按下组合键…（Esc 取消）
@@ -81,8 +81,8 @@ export function ShortcutRecorder({ value, onChange, placeholder }: Props) {
             setError(null)
           }}
           styles={{
-            root: { minWidth: 180, justifyContent: 'flex-start', paddingLeft: 10, paddingRight: 12 },
-            section: { marginRight: 8 },
+            root: { minWidth: 180, height: 32, justifyContent: 'flex-start', paddingLeft: 14, paddingRight: 16 },
+            section: { marginRight: 10 },
             label: { width: '100%', textAlign: 'left' },
           }}
         >
