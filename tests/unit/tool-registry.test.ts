@@ -10,11 +10,17 @@ vi.mock('@main/logger', () => ({
   mainLog: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
   createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
 }))
-vi.mock('@main/settings-store', () => ({
-  getScopedStore: () => ({ get: () => '', set: () => {}, delete: () => {}, has: () => false }),
-}))
+vi.mock('@main/settings-store', () => {
+  const scoped = { get: () => '', set: () => {}, delete: () => {}, has: () => false }
+  return {
+    getScopedStore: () => scoped,
+    appStore: { get: (_k: string, d: unknown) => d, set: () => {}, delete: () => {}, has: () => false },
+  }
+})
 vi.mock('@main/shortcut-manager', () => ({
   registerShortcut: vi.fn(() => ({ ok: true })),
+  unregisterAllForTool: vi.fn(),
+  listShortcuts: vi.fn(() => []),
 }))
 
 import { loadTools, listToolSummaries, _resetForTest } from '@main/tool-registry'

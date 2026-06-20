@@ -8,7 +8,7 @@ import { FilePathPicker } from '@renderer/shared/components/FilePathPicker'
 import { ShortcutRecorder } from '@renderer/shared/components/ShortcutRecorder'
 import { useToolSetting } from '@renderer/shared/hooks/useToolSetting'
 
-export default function ScreenshotSettings({ toolId, shortcuts, setShortcut, toast }: ToolSettingsProps) {
+export default function ScreenshotSettings({ toolId, shortcuts, setShortcut }: ToolSettingsProps) {
   const [saveDir, setSaveDir] = useToolSetting<string>(toolId, 'saveDir', '')
   const [template, setTemplate] = useToolSetting<string>(
     toolId,
@@ -24,10 +24,6 @@ export default function ScreenshotSettings({ toolId, shortcuts, setShortcut, toa
   return (
     <Stack gap="md">
       <Title order={3}>截图</Title>
-
-      <SettingRow label="启用" hint="关闭后菜单栏与快捷键不可用">
-        <Toggle checked={true} onChange={() => toast('暂不支持，所有工具默认启用', 'info')} />
-      </SettingRow>
 
       <SettingRow label="保存目录" hint="另存为时的默认位置">
         <FilePathPicker value={saveDir} onChange={setSaveDir} placeholder="~/Pictures/max-tools" />

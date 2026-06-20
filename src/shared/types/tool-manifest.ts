@@ -52,4 +52,8 @@ export interface ToolSummary {
   icon?: string
   loaded: boolean
   loadError?: string
+  /** Base-level enable switch. When false the tool's shortcuts are
+   *  unregistered and tray entries are disabled — backing init() still
+   *  ran so internal state / settings remain reachable. */
+  enabled: boolean
 }

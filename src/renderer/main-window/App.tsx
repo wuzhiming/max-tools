@@ -19,6 +19,7 @@ type ToolSummary = {
   icon?: string
   loaded: boolean
   loadError?: string
+  enabled: boolean
 }
 
 type Route =
@@ -47,9 +48,16 @@ export function App() {
   })
 
   useEffect(() => {
-    window.mt.invoke(window.mt.IPC.ToolList).then((t) => setTools(t as ToolSummary[]))
+    const refresh = () => {
+      window.mt.invoke(window.mt.IPC.ToolList).then((t) => setTools(t as ToolSummary[]))
+    }
+    refresh()
     const off = window.mt.on('navigate', (path) => setRoute(parseRoute(path as string)))
-    return () => { off() }
+    // Re-fetch the tool list when any tool's enable state changes elsewhere
+    // (e.g. user toggled in the settings page; tray menu used to be only
+    // place an action was). Refreshes the sidebar's "disabled" badge.
+    const offChanged = window.mt.on('tools/changed', refresh)
+    return () => { off(); offChanged() }
   }, [])
 
   useEffect(() => {
@@ -76,11 +84,12 @@ export function App() {
             <NavLink
               key={t.id}
               active={route.kind === 'tool' && route.id === t.id}
-              label={t.name}
+              label={t.enabled ? t.name : `${t.name}（已禁用）`}
               leftSection={toolIcon(t.id)}
               disabled={!t.loaded}
               description={!t.loaded ? t.loadError : undefined}
               onClick={() => t.loaded && setRoute({ kind: 'tool', id: t.id })}
+              styles={{ label: { color: t.enabled ? undefined : 'var(--mantine-color-dimmed)' } }}
             />
           ))}
 

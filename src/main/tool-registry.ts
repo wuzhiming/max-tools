@@ -1,8 +1,12 @@
 // src/main/tool-registry.ts
 import { BrowserWindow, ipcMain } from 'electron'
 import { mainLog, createLogger } from './logger'
-import { getScopedStore } from './settings-store'
-import { listShortcuts, registerShortcut as smRegister } from './shortcut-manager'
+import { appStore, getScopedStore } from './settings-store'
+import {
+  listShortcuts,
+  registerShortcut as smRegister,
+  unregisterAllForTool,
+} from './shortcut-manager'
 import type { ToolManifest, ToolContext, ToolSummary, RegisterResult } from '@shared/types/tool-manifest'
 
 interface LoadedTool {
@@ -12,11 +16,58 @@ interface LoadedTool {
 }
 
 const tools = new Map<string, LoadedTool>()
+/** All shortcuts a tool tried to register (toolId:key → handler), regardless
+ *  of whether they were live at the OS level. We need this so we can re-arm
+ *  every shortcut a tool owns when it gets re-enabled. */
 const shortcutHandlers = new Map<string, () => void>()
 
 export function rememberShortcutHandler(toolId: string, key: string, handler: () => void): void {
   shortcutHandlers.set(`${toolId}:${key}`, handler)
 }
+
+// --- Enable/disable -------------------------------------------------------
+
+function enabledStoreKey(toolId: string): string {
+  return `toolEnabled.${toolId}`
+}
+
+/** Source of truth for whether a tool is currently enabled. Defaults true. */
+export function isToolEnabled(toolId: string): boolean {
+  return appStore.get<boolean>(enabledStoreKey(toolId), true)
+}
+
+/** Switch a tool on/off at runtime. Disabled tools have all their globalShortcuts
+ *  removed; re-enabling pulls their stored combos out of the per-tool store and
+ *  re-registers via the shortcut-manager. */
+export function setToolEnabled(toolId: string, enabled: boolean): { ok: boolean; reason?: string } {
+  const t = tools.get(toolId)
+  if (!t) return { ok: false, reason: `unknown tool ${toolId}` }
+  appStore.set(enabledStoreKey(toolId), enabled)
+
+  if (!enabled) {
+    unregisterAllForTool(toolId)
+    mainLog.info(`tool ${toolId} disabled — shortcuts cleared`)
+    return { ok: true }
+  }
+
+  // Re-enable: walk the manifest's defaultShortcuts (the keys a tool may own)
+  // and re-register each one with the user's stored combo (or the manifest
+  // default if none stored). Skip keys the tool never wired a handler for.
+  const store = getScopedStore(`tool.${toolId}`)
+  let firstError: string | null = null
+  for (const key of Object.keys(t.manifest.defaultShortcuts)) {
+    const handler = shortcutHandlers.get(`${toolId}:${key}`)
+    if (!handler) continue
+    const combo = store.get<string>(`shortcuts.${key}`, t.manifest.defaultShortcuts[key] ?? '')
+    const r = smRegister({ toolId, key, combo, handler })
+    if (!r.ok && !firstError) firstError = r.reason ?? 'shortcut registration failed'
+  }
+  mainLog.info(`tool ${toolId} enabled — shortcuts re-armed`)
+  if (firstError) return { ok: true, reason: firstError } // enabled successfully but some combo failed
+  return { ok: true }
+}
+
+// --- Tool loading ---------------------------------------------------------
 
 export interface LoadOptions {
   manifestLoaders: Array<() => Promise<ToolManifest>>
@@ -49,6 +100,16 @@ export async function loadTools(opts: LoadOptions): Promise<void> {
       const msg = err instanceof Error ? err.message : String(err)
       tools.set(manifest.id, { manifest, loaded: false, error: msg })
       mainLog.error(`tool init failed: ${manifest.id}`, err)
+      continue
+    }
+    // After init has had a chance to register every shortcut, immediately
+    // tear them down if the tool is persisted as disabled. We still let
+    // init() run so the tool's internal state (settings, IPC handlers,
+    // background timers) is available — disable only blocks user entry
+    // points (hotkeys / tray actions).
+    if (!isToolEnabled(manifest.id)) {
+      unregisterAllForTool(manifest.id)
+      mainLog.info(`tool ${manifest.id} stored-disabled — shortcuts cleared after init`)
     }
   }
 }
@@ -63,6 +124,7 @@ function createContext(manifest: ToolManifest): ToolContext {
     store,
     log,
     registerShortcut: async (key, combo, handler) => {
+      // Always remember the handler so re-enable can re-arm it.
       rememberShortcutHandler(manifest.id, key, handler)
       const stored = store.get<string>(`shortcuts.${key}`, manifest.defaultShortcuts[key] ?? '')
       const finalCombo = combo || stored
@@ -91,6 +153,8 @@ function createContext(manifest: ToolManifest): ToolContext {
   return ctx
 }
 
+// --- Public read API ------------------------------------------------------
+
 export function listToolSummaries(): ToolSummary[] {
   return [...tools.values()].map((t) => ({
     id: t.manifest.id,
@@ -98,6 +162,7 @@ export function listToolSummaries(): ToolSummary[] {
     icon: t.manifest.icon,
     loaded: t.loaded,
     loadError: t.error,
+    enabled: isToolEnabled(t.manifest.id),
   }))
 }
 
@@ -128,12 +193,21 @@ export function setToolShortcut(toolId: string, key: string, combo: string): Reg
   store.set(`shortcuts.${key}`, combo)
   const handler = shortcutHandlers.get(`${toolId}:${key}`)
   if (!handler) return { ok: false, reason: 'no handler registered yet, restart needed' }
+  if (!isToolEnabled(toolId)) {
+    // Persisted, will be picked up next time the tool is enabled. Don't
+    // actually arm the OS shortcut while disabled.
+    return { ok: true }
+  }
   return smRegister({ toolId, key, combo, handler })
 }
 
 /** Trigger a tool action by id+key. Returns true if a handler ran. Used by
  *  the tray menu so the user can hit the same actions a shortcut would. */
 export function invokeToolAction(toolId: string, key: string): boolean {
+  if (!isToolEnabled(toolId)) {
+    mainLog.warn(`invokeToolAction: tool ${toolId} is disabled`)
+    return false
+  }
   const handler = shortcutHandlers.get(`${toolId}:${key}`)
   if (!handler) {
     mainLog.warn(`invokeToolAction: no handler for ${toolId}:${key}`)

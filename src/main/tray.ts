@@ -67,7 +67,15 @@ export function refreshTrayMenu(): void {
   const tools = listToolSummaries()
   const items: Electron.MenuItemConstructorOptions[] = [
     ...tools.map((t) => {
-      const sub = t.loaded ? toolSubmenu(t.id) : null
+      // Disabled or unloaded → flat label, no submenu, not clickable.
+      if (!t.loaded || !t.enabled) {
+        const suffix = !t.loaded ? '加载失败' : '已禁用'
+        return {
+          label: `${t.name}（${suffix}）`,
+          enabled: false,
+        } as Electron.MenuItemConstructorOptions
+      }
+      const sub = toolSubmenu(t.id)
       if (sub) {
         return {
           label: t.name,
@@ -75,8 +83,8 @@ export function refreshTrayMenu(): void {
         } as Electron.MenuItemConstructorOptions
       }
       return {
-        label: t.loaded ? t.name : `${t.name} (加载失败)`,
-        enabled: t.loaded,
+        label: t.name,
+        enabled: true,
       } as Electron.MenuItemConstructorOptions
     }),
     { type: 'separator' as const },

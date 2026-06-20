@@ -5,6 +5,8 @@ export const IPC = {
   ToolSetShortcut: 'tools/set-shortcut',
   ToolStoreGet: 'tools/store-get',
   ToolStoreSet: 'tools/store-set',
+  ToolIsEnabled: 'tools/is-enabled',
+  ToolSetEnabled: 'tools/set-enabled',
   OpenLogsFolder: 'app/open-logs',
   GetVersion: 'app/get-version',
   DialogOpenDirectory: 'app/dialog-open-directory',

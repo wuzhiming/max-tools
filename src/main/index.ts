@@ -1,7 +1,14 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { initLogger, mainLog } from './logger'
 import { createTray, refreshTrayMenu } from './tray'
-import { listToolSummaries, loadTools, getToolShortcuts, setToolShortcut } from './tool-registry'
+import {
+  isToolEnabled,
+  listToolSummaries,
+  loadTools,
+  getToolShortcuts,
+  setToolEnabled,
+  setToolShortcut,
+} from './tool-registry'
 import { getScopedStore } from './settings-store'
 import { getPermissionStatus, openPermissionPane } from './permissions'
 import { IPC } from '@shared/types/ipc'
@@ -39,6 +46,20 @@ function registerAppIpc(): void {
     IPC.ToolSetShortcut,
     (_e, args: { toolId: string; key: string; combo: string }) =>
       setToolShortcut(args.toolId, args.key, args.combo),
+  )
+  ipcMain.handle(IPC.ToolIsEnabled, (_e, toolId: string) => isToolEnabled(toolId))
+  ipcMain.handle(
+    IPC.ToolSetEnabled,
+    (_e, args: { toolId: string; enabled: boolean }) => {
+      const r = setToolEnabled(args.toolId, args.enabled)
+      // Tray menu reflects enabled state — refresh so disabled tools grey out.
+      refreshTrayMenu()
+      // Tell every renderer that the tool list changed.
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.webContents.send('tools/changed')
+      }
+      return r
+    },
   )
   ipcMain.handle(
     IPC.ToolStoreGet,
