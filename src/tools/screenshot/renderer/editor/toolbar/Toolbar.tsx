@@ -3,11 +3,13 @@ import React from 'react'
 import {
   ActionIcon,
   Button,
-  ColorInput,
+  ColorPicker,
+  ColorSwatch,
   Divider,
   Group,
   Kbd,
   Menu,
+  Popover,
   Select,
   Tooltip,
 } from '@mantine/core'
@@ -146,16 +148,26 @@ export function Toolbar(p: Props) {
 
         <Divider orientation="vertical" />
 
-        <ColorInput
-          value={p.color}
-          onChange={p.setColor}
-          format="hex"
-          swatches={PRESET_COLORS}
-          withEyeDropper={false}
-          size="xs"
-          w={120}
-          aria-label="颜色"
-        />
+        <Popover position="top" shadow="md" withArrow>
+          <Popover.Target>
+            <Tooltip label="颜色" position="top" withArrow>
+              <ColorSwatch
+                color={p.color}
+                size={22}
+                style={{ cursor: 'pointer' }}
+                aria-label="颜色"
+              />
+            </Tooltip>
+          </Popover.Target>
+          <Popover.Dropdown p="xs">
+            <ColorPicker
+              value={p.color}
+              onChange={p.setColor}
+              swatches={PRESET_COLORS}
+              format="hex"
+            />
+          </Popover.Dropdown>
+        </Popover>
 
         <Select
           size="xs"
