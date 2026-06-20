@@ -1,6 +1,7 @@
 // src/tools/screenshot/renderer/editor/canvas/bbox.ts
 import type { Layer, Point } from '../layers/types'
 import { normalizeRect } from '../layers/rect'
+import { measureTextLines } from './measure'
 
 export interface BBox {
   x: number
@@ -37,9 +38,7 @@ export function getLayerBBox(l: Layer): BBox | null {
   if (l.type === 'arrow') return pointsBBox([l.from, l.to], (l.strokeWidth ?? 0) / 2)
   if (l.type === 'pen') return pointsBBox(l.points, (l.strokeWidth ?? 0) / 2)
   if (l.type === 'text') {
-    // Approximate — matches hit-test heuristic in canvas/hit.ts
-    const w = l.fontSize * Math.max(1, l.content.length) * 0.6
-    const h = l.fontSize * Math.max(1, l.content.split('\n').length) * 1.2
+    const { w, h } = measureTextLines(l.content, l.fontSize, l.fontFamily)
     return { x: l.pos.x, y: l.pos.y, w, h }
   }
   return null

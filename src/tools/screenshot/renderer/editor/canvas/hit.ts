@@ -1,6 +1,7 @@
 // src/tools/screenshot/renderer/editor/canvas/hit.ts
 import type { Layer, Point } from '../layers/types'
 import { normalizeRect } from '../layers/rect'
+import { measureTextLines } from './measure'
 
 const POINT_TOL = 6
 const BORDER_TOL = 6
@@ -104,8 +105,7 @@ function hitLayer(l: Layer, x: number, y: number): boolean {
     return hitPolyline(x, y, l.points, (l.strokeWidth ?? 0) / 2)
   }
   if (l.type === 'text') {
-    const w = l.fontSize * Math.max(1, l.content.length) * 0.6
-    const h = l.fontSize * Math.max(1, l.content.split('\n').length) * 1.2
+    const { w, h } = measureTextLines(l.content, l.fontSize, l.fontFamily)
     return x >= l.pos.x && x <= l.pos.x + w && y >= l.pos.y && y <= l.pos.y + h
   }
   return false
@@ -133,8 +133,7 @@ function hitLayerBorder(l: Layer, x: number, y: number): boolean {
   if (l.type === 'text') {
     // Text has no meaningful "border" — the glyphs themselves are the shape,
     // so we keep the bbox hit-test for the border variant too.
-    const w = l.fontSize * Math.max(1, l.content.length) * 0.6
-    const h = l.fontSize * Math.max(1, l.content.split('\n').length) * 1.2
+    const { w, h } = measureTextLines(l.content, l.fontSize, l.fontFamily)
     return x >= l.pos.x && x <= l.pos.x + w && y >= l.pos.y && y <= l.pos.y + h
   }
   return false

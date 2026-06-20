@@ -47,6 +47,19 @@ export function Editor() {
     img.src = `file://${init.imagePath}`
   }, [init])
 
+  // Signal main to show() the editor + toolbar windows as soon as the canvas
+  // has the screenshot painted. Until then both stay hidden — otherwise the
+  // user sees an empty dark editor rectangle flash before the image lands.
+  const paintedSentRef = useRef(false)
+  useEffect(() => {
+    if (!baseImage || paintedSentRef.current) return
+    const id = requestAnimationFrame(() => {
+      paintedSentRef.current = true
+      window.mt.send(window.mt.SS_IPC.EditorPainted)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [baseImage])
+
   // Track canvas CSS dims + scale so overlays (selection handles, text editor)
   // can position themselves in CSS px while layer coords stay in canvas px.
   useEffect(() => {

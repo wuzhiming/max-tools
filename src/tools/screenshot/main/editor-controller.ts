@@ -67,6 +67,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     transparent: false,
     alwaysOnTop: true,
     skipTaskbar: true,
+    show: false,
     backgroundColor: '#1c1c1e',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -121,6 +122,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     skipTaskbar: true,
     resizable: false,
     focusable: true,
+    show: false,
     enableLargerThanScreen: true,
     backgroundColor: '#00000000',
     webPreferences: {
@@ -225,6 +227,19 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     activeToolbar.setIgnoreMouseEvents(!!passthrough, { forward: true })
   }
 
+  // Hold both windows hidden until the editor renderer has painted the
+  // captured image to its canvas — otherwise the user sees an empty dark
+  // editor rectangle flash before the screenshot appears.
+  let shown = false
+  const showBoth = () => {
+    if (shown) return
+    shown = true
+    if (activeEditor && !activeEditor.isDestroyed()) activeEditor.show()
+    if (activeToolbar && !activeToolbar.isDestroyed()) activeToolbar.show()
+  }
+  const onEditorPainted = () => showBoth()
+  const showFailsafe = setTimeout(showBoth, 1500)
+
   ipcMain.on(SS_IPC.EditorComplete, onComplete)
   ipcMain.on(SS_IPC.EditorSaveAs, onSaveAs)
   ipcMain.on(SS_IPC.EditorCancel, onCancel)
@@ -232,8 +247,10 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   ipcMain.on(SS_IPC.ToolbarAction, onToolbarAction)
   ipcMain.on(SS_IPC.EditorStatus, onEditorStatus)
   ipcMain.on(SS_IPC.ToolbarSetPassthrough, onToolbarSetPassthrough)
+  ipcMain.on(SS_IPC.EditorPainted, onEditorPainted)
 
   const closeEditor = () => {
+    clearTimeout(showFailsafe)
     if (activeEditor && !activeEditor.isDestroyed()) activeEditor.close()
     if (activeToolbar && !activeToolbar.isDestroyed()) activeToolbar.close()
     activeEditor = null
@@ -245,6 +262,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     ipcMain.off(SS_IPC.ToolbarAction, onToolbarAction)
     ipcMain.off(SS_IPC.EditorStatus, onEditorStatus)
     ipcMain.off(SS_IPC.ToolbarSetPassthrough, onToolbarSetPassthrough)
+    ipcMain.off(SS_IPC.EditorPainted, onEditorPainted)
   }
 
   win.on('closed', closeEditor)

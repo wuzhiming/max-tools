@@ -26,6 +26,8 @@ export const SS_IPC = {
   EditorStatus: 'editor/status',
   /** toolbar → main：根据光标位置切换工具栏窗口的点击穿透 */
   ToolbarSetPassthrough: 'toolbar/set-passthrough',
+  /** editor → main：图像已绘制到画布，主进程可以 show() 窗口了 */
+  EditorPainted: 'editor/painted',
 } as const
 
 export interface OverlayInitPayload {

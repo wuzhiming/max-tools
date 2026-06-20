@@ -63,7 +63,7 @@ const SIMPLE_TOOLS: SimpleToolDef[] = [
 export function Toolbar() {
   const [activeTool, setActiveTool] = useState<ToolKind>('rect')
   const [color, setColor] = useState('#FF3B30')
-  const [strokeWidth, setStrokeWidth] = useState(10)
+  const [strokeWidth, setStrokeWidth] = useState(6)
   const [blurMode, setBlurMode] = useState<'mosaic' | 'gaussian'>('mosaic')
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
