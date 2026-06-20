@@ -2,7 +2,8 @@
 import { Tray, Menu, nativeImage, app } from 'electron'
 import sharp from 'sharp'
 import { mainLog } from './logger'
-import { listToolSummaries } from './tool-registry'
+import { invokeToolAction, listToolSummaries } from './tool-registry'
+import { listShortcuts } from './shortcut-manager'
 import { showMainWindow } from './main-window'
 
 let tray: Tray | null = null
@@ -29,14 +30,58 @@ export async function createTray(): Promise<void> {
   refreshTrayMenu()
 }
 
+/** Map a registered shortcut combo to macOS menu accelerator notation.
+ *  Electron's "CommandOrControl+Shift+X" already matches what Menu wants
+ *  (it will render as ⌘⇧X), so we mostly pass through. */
+function comboToAccelerator(combo: string): string | undefined {
+  return combo || undefined
+}
+
+/** Build the per-tool submenu. For now only the screenshot tool exposes
+ *  actions (region/fullscreen/scroll); other tools just show their name.
+ *  When we add more tools with actions we'll lift this into a tool
+ *  manifest field. */
+function toolSubmenu(toolId: string): Electron.MenuItemConstructorOptions[] | null {
+  if (toolId !== 'screenshot') return null
+  const shortcuts = Object.fromEntries(
+    listShortcuts(toolId).map((s) => [s.key, s.combo] as const),
+  )
+  return [
+    {
+      label: '区域截图',
+      accelerator: comboToAccelerator(shortcuts['region']),
+      click: () => { invokeToolAction('screenshot', 'region') },
+    },
+    {
+      label: '全屏截图',
+      accelerator: comboToAccelerator(shortcuts['fullscreen']),
+      click: () => { invokeToolAction('screenshot', 'fullscreen') },
+    },
+    {
+      label: '长截图（滚动）',
+      accelerator: comboToAccelerator(shortcuts['scroll']),
+      click: () => { invokeToolAction('screenshot', 'scroll') },
+    },
+  ]
+}
+
 export function refreshTrayMenu(): void {
   if (!tray) return
   const tools = listToolSummaries()
   const items: Electron.MenuItemConstructorOptions[] = [
-    ...tools.map((t) => ({
-      label: t.loaded ? t.name : `${t.name} (加载失败)`,
-      enabled: t.loaded,
-    })),
+    ...tools.map((t) => {
+      const sub = t.loaded ? toolSubmenu(t.id) : null
+      if (sub) {
+        return {
+          label: t.name,
+          submenu: sub,
+        } as Electron.MenuItemConstructorOptions
+      }
+      return {
+        label: t.loaded ? t.name : `${t.name} (加载失败)`,
+        enabled: t.loaded,
+      } as Electron.MenuItemConstructorOptions
+    }),
     { type: 'separator' as const },
     { label: '打开主窗口', click: () => showMainWindow() },
     { label: '设置…', click: () => showMainWindow('/settings/general') },

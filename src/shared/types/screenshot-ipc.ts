@@ -63,6 +63,9 @@ export interface OverlaySelectedPayload {
   displayId: number
   regionInImagePixels: Rect
   pickedColor?: { hex: string; r: number; g: number; b: number }
+  /** Capture mode chosen via the in-overlay toolbar. Defaults to 'normal'
+   *  for backward compatibility (Enter key / legacy callers). */
+  mode?: 'normal' | 'scroll'
 }
 
 export interface ToolbarActionPayload {

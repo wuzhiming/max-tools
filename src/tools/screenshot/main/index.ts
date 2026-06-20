@@ -56,7 +56,6 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     const r = await showOverlays()
     if (
       r.cancelled ||
-      !r.croppedPath ||
       !r.region ||
       !r.displayBounds ||
       r.width == null ||
@@ -64,6 +63,14 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     ) {
       return
     }
+    // The in-overlay toolbar lets the user pick the capture mode. If they
+    // chose 'scroll', divert to the polling+stitch pipeline using the
+    // region they just drew; otherwise it's the normal one-shot path.
+    if (r.mode === 'scroll') {
+      await scrollCaptureFromSelection(r)
+      return
+    }
+    if (!r.croppedPath) return
     const { screen } = await import('electron')
     const display = screen.getDisplayMatching(r.displayBounds)
     const dpr = display.scaleFactor
@@ -100,24 +107,19 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     })
   }
 
-  async function runScrollFlow(): Promise<void> {
-    ctx.log.info('runScrollFlow triggered')
-    if (!(await checkPermissionWithUserPrompt())) return
-    const sel = await showOverlays()
-    if (
-      sel.cancelled ||
-      !sel.region ||
-      !sel.displayBounds ||
-      sel.width == null ||
-      sel.height == null
-    ) {
-      return
-    }
+  /** Shared tail of both the dedicated scroll shortcut and the
+   *  in-overlay scroll-mode button. Takes an already-resolved overlay
+   *  selection and runs polling + stitch + editor. */
+  async function scrollCaptureFromSelection(sel: {
+    region?: { x: number; y: number; w: number; h: number }
+    displayBounds?: { x: number; y: number; width: number; height: number }
+    width?: number
+    height?: number
+  }): Promise<void> {
+    if (!sel.region || !sel.displayBounds || sel.width == null || sel.height == null) return
     const display = screen.getDisplayMatching(sel.displayBounds)
     const dpr = display.scaleFactor
     const cssRegion = imageToCss(sel.region, dpr)
-    // Translate the region (relative to its display) into global CSS screen coords
-    // — screencapture -R expects global coordinates.
     const globalRegion = {
       x: sel.displayBounds.x + cssRegion.x,
       y: sel.displayBounds.y + cssRegion.y,
@@ -133,9 +135,6 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     if (result.cancelled || !result.outputPath || result.pixelWidth == null || result.pixelHeight == null) {
       return
     }
-    // For a tall stitched image the editor window should not balloon past
-    // the display; clamp height to ~80% of screen, the editor canvas will
-    // shrink-to-fit and the user still sees the full image.
     const maxH = Math.round(display.workArea.height * 0.8)
     const cssW = Math.round(result.pixelWidth / dpr)
     const cssH = Math.round(result.pixelHeight / dpr)
@@ -155,6 +154,14 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
       resolveSaveDir: getSaveDir,
       onSaved: rememberSaveDir,
     })
+  }
+
+  async function runScrollFlow(): Promise<void> {
+    ctx.log.info('runScrollFlow triggered')
+    if (!(await checkPermissionWithUserPrompt())) return
+    const sel = await showOverlays()
+    if (sel.cancelled) return
+    await scrollCaptureFromSelection(sel)
   }
 
   // 注册快捷键（store 中已保存的优先，否则用默认）

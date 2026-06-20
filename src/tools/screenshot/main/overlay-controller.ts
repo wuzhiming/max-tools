@@ -47,6 +47,8 @@ export interface ShowOverlayResult {
   height?: number
   region?: { x: number; y: number; w: number; h: number }
   displayBounds?: { x: number; y: number; width: number; height: number }
+  /** Mode the user picked via the in-overlay toolbar. */
+  mode?: 'normal' | 'scroll'
 }
 
 export async function showOverlays(): Promise<ShowOverlayResult> {
@@ -73,9 +75,23 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
     }
 
     const onSelected = async (_e: Electron.IpcMainEvent, payload: OverlaySelectedPayload) => {
-      log.info('IPC OverlaySelected received, displayId=', payload.displayId)
+      log.info('IPC OverlaySelected received, displayId=', payload.displayId, 'mode=', payload.mode)
       const cap = captured[payload.displayId]
       if (!cap) { log.error('selected unknown displayId', payload.displayId); return }
+      const mode = payload.mode ?? 'normal'
+      // For scroll mode we don't need a cropped first frame — runScrollCapture
+      // will repeatedly grab the region itself. Skip the crop in that case.
+      if (mode === 'scroll') {
+        settle({
+          cancelled: false,
+          width: payload.regionInImagePixels.w,
+          height: payload.regionInImagePixels.h,
+          region: payload.regionInImagePixels,
+          displayBounds: cap.display.bounds,
+          mode,
+        })
+        return
+      }
       try {
         const cropped = await cropImage(
           cap.imagePath,
@@ -90,6 +106,7 @@ export async function showOverlays(): Promise<ShowOverlayResult> {
           height: payload.regionInImagePixels.h,
           region: payload.regionInImagePixels,
           displayBounds: cap.display.bounds,
+          mode,
         })
       } catch (err) {
         log.error('crop failed', err)

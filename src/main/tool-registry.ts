@@ -131,6 +131,18 @@ export function setToolShortcut(toolId: string, key: string, combo: string): Reg
   return smRegister({ toolId, key, combo, handler })
 }
 
+/** Trigger a tool action by id+key. Returns true if a handler ran. Used by
+ *  the tray menu so the user can hit the same actions a shortcut would. */
+export function invokeToolAction(toolId: string, key: string): boolean {
+  const handler = shortcutHandlers.get(`${toolId}:${key}`)
+  if (!handler) {
+    mainLog.warn(`invokeToolAction: no handler for ${toolId}:${key}`)
+    return false
+  }
+  try { handler() } catch (err) { mainLog.error('action handler threw', err) }
+  return true
+}
+
 export function _resetForTest(): void {
   tools.clear()
   shortcutHandlers.clear()
