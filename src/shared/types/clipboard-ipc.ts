@@ -11,14 +11,31 @@ export const CB_IPC = {
   Cancel: 'clipboard/cancel',
 } as const
 
-export interface ClipboardEntry {
-  /** 队列内唯一 id（自增字符串），picker 选中时按 id 回传 */
+/** Plain-text entry. */
+export interface TextEntry {
   id: string
   kind: 'text'
   text: string
-  /** 进入队列时的 unix ms */
   time: number
 }
+
+/** Image entry. The full image is kept main-side (data URL kept in memory)
+ *  and only a tiny base64 thumbnail is shipped to the picker renderer to
+ *  keep IPC payloads small. */
+export interface ImageEntry {
+  id: string
+  kind: 'image'
+  /** Base64 data URL of the thumbnail (small, ~40px tall) for picker display. */
+  thumbDataUrl: string
+  /** Pixel dims of the source image (for display only). */
+  width: number
+  height: number
+  /** Approximate PNG byte size of the source image. */
+  bytes: number
+  time: number
+}
+
+export type ClipboardEntry = TextEntry | ImageEntry
 
 export interface PickerInitPayload {
   entries: ClipboardEntry[]

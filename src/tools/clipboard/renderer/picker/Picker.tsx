@@ -124,7 +124,7 @@ export function Picker() {
                 onClick={() => pick(entry.id)}
                 style={{
                   display: 'flex',
-                  alignItems: 'flex-start',
+                  alignItems: 'center',
                   gap: 10,
                   padding: '10px 14px',
                   borderBottom: '1px solid #f4f4f4',
@@ -148,22 +148,49 @@ export function Picker() {
                 >
                   {numLabel}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    size="sm"
-                    style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      color: '#212529',
-                    }}
-                  >
-                    {previewOf(entry.text)}
-                  </Text>
-                  <Text size="xs" c="dimmed" mt={2}>
-                    {entry.text.length} 字符 · {relTime(entry.time)}
-                  </Text>
-                </div>
+                {entry.kind === 'image' ? (
+                  <>
+                    <img
+                      src={entry.thumbDataUrl}
+                      alt=""
+                      draggable={false}
+                      style={{
+                        height: 36,
+                        width: 'auto',
+                        maxWidth: 80,
+                        objectFit: 'contain',
+                        borderRadius: 3,
+                        background: '#f8f9fa',
+                        border: '1px solid #dee2e6',
+                      }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Text size="sm" c="dark">
+                        图片
+                      </Text>
+                      <Text size="xs" c="dimmed" mt={2}>
+                        {entry.width}×{entry.height} · {Math.round(entry.bytes / 1024)} KB · {relTime(entry.time)}
+                      </Text>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      size="sm"
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: '#212529',
+                      }}
+                    >
+                      {previewOf(entry.text)}
+                    </Text>
+                    <Text size="xs" c="dimmed" mt={2}>
+                      {entry.text.length} 字符 · {relTime(entry.time)}
+                    </Text>
+                  </div>
+                )}
               </div>
             )
           })}
