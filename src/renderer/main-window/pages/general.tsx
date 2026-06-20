@@ -1,18 +1,18 @@
 // src/renderer/main-window/pages/general.tsx
 import React from 'react'
+import { Stack, Switch, Text, Title } from '@mantine/core'
+import { SettingRow } from '@renderer/shared/components/SettingRow'
 
 export function GeneralPage() {
   return (
-    <div>
-      <h1>通用设置</h1>
-      <div className="row">
-        <label>开机启动</label>
-        <span>（待实现）</span>
-      </div>
-      <div className="row">
-        <label>主题</label>
-        <span>跟随系统</span>
-      </div>
-    </div>
+    <Stack gap="md">
+      <Title order={3}>通用设置</Title>
+      <SettingRow label="开机启动" hint="待实现">
+        <Switch disabled checked={false} onChange={() => {}} />
+      </SettingRow>
+      <SettingRow label="主题">
+        <Text size="sm">跟随系统</Text>
+      </SettingRow>
+    </Stack>
   )
 }

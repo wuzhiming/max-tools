@@ -1,5 +1,6 @@
 // src/renderer/main-window/pages/tool-host.tsx
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
+import { Loader, Stack, Text, Title } from '@mantine/core'
 import type { ToolSettingsProps, ShortcutBinding, RegisterResult } from '@shared/types/tool-manifest'
 
 interface Props {
@@ -46,15 +47,21 @@ export function ToolHostPage({ toolId }: Props) {
 
   if (!Loaded) {
     return (
-      <div>
-        <h1>{toolId}</h1>
-        该工具没有设置页。
-      </div>
+      <Stack gap="md">
+        <Title order={3}>{toolId}</Title>
+        <Text c="dimmed">该工具没有设置页。</Text>
+      </Stack>
     )
   }
 
   return (
-    <Suspense fallback={<div>加载中…</div>}>
+    <Suspense
+      fallback={
+        <Stack align="center" py="xl">
+          <Loader size="sm" />
+        </Stack>
+      }
+    >
       <Loaded
         toolId={toolId}
         shortcuts={shortcuts}

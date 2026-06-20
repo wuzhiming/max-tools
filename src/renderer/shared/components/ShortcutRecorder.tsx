@@ -1,5 +1,7 @@
 // src/renderer/shared/components/ShortcutRecorder.tsx
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { Button, Group, Kbd, Text } from '@mantine/core'
+import { IconKeyboard, IconX } from '@tabler/icons-react'
 
 interface Props {
   value: string
@@ -29,7 +31,6 @@ export function ShortcutRecorder({ value, onChange, placeholder }: Props) {
   const [recording, setRecording] = useState(false)
   const [draft, setDraft] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!recording) return
@@ -62,25 +63,47 @@ export function ShortcutRecorder({ value, onChange, placeholder }: Props) {
   }, [recording, onChange])
 
   const display = draft ?? value ?? ''
+
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={() => { setRecording((r) => !r); setDraft(null); setError(null) }}
-        style={{
-          minWidth: 140, padding: '4px 12px',
-          background: recording ? '#fff3cd' : 'white',
-          border: '1px solid #d1d1d6', borderRadius: 4,
-          fontFamily: 'monospace',
-        }}
-      >
-        {recording ? '按下组合键…（Esc 取消）' : display || placeholder || '未设置'}
-      </button>
-      {value && !recording && (
-        <button type="button" onClick={async () => { await onChange(''); setDraft(null) }}>清除</button>
+    <Group gap="xs" wrap="nowrap">
+      {recording ? (
+        <Button variant="light" color="yellow" size="xs">
+          按下组合键…（Esc 取消）
+        </Button>
+      ) : (
+        <Button
+          variant="default"
+          size="xs"
+          leftSection={<IconKeyboard size={14} />}
+          onClick={() => {
+            setRecording(true)
+            setDraft(null)
+            setError(null)
+          }}
+          styles={{ root: { minWidth: 160, justifyContent: 'flex-start' } }}
+        >
+          {display ? <Kbd>{display}</Kbd> : <Text size="xs" c="dimmed">{placeholder ?? '未设置'}</Text>}
+        </Button>
       )}
-      {error && <span style={{ color: '#a40000', fontSize: 11 }}>{error}</span>}
-    </div>
+      {value && !recording && (
+        <Button
+          variant="subtle"
+          color="gray"
+          size="xs"
+          onClick={async () => {
+            await onChange('')
+            setDraft(null)
+          }}
+          aria-label="清除"
+        >
+          <IconX size={14} />
+        </Button>
+      )}
+      {error && (
+        <Text size="xs" c="red">
+          {error}
+        </Text>
+      )}
+    </Group>
   )
 }

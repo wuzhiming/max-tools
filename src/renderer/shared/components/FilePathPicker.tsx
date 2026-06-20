@@ -1,5 +1,7 @@
 // src/renderer/shared/components/FilePathPicker.tsx
 import React from 'react'
+import { Button, Group, TextInput } from '@mantine/core'
+import { IconFolderOpen } from '@tabler/icons-react'
 
 interface Props {
   value: string
@@ -13,15 +15,22 @@ export function FilePathPicker({ value, onChange, placeholder }: Props) {
     if (r) onChange(r)
   }
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      <input
-        type="text"
+    <Group gap="xs" wrap="nowrap">
+      <TextInput
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.currentTarget.value)}
         placeholder={placeholder}
-        style={{ flex: 1, padding: '4px 8px', border: '1px solid #d1d1d6', borderRadius: 4 }}
+        size="xs"
+        style={{ flex: 1 }}
       />
-      <button type="button" onClick={handlePick}>选择…</button>
-    </div>
+      <Button
+        variant="default"
+        size="xs"
+        leftSection={<IconFolderOpen size={14} />}
+        onClick={handlePick}
+      >
+        选择…
+      </Button>
+    </Group>
   )
 }

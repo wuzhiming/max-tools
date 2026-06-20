@@ -1,5 +1,6 @@
 // src/renderer/shared/components/SettingRow.tsx
 import React from 'react'
+import { Group, Stack, Text } from '@mantine/core'
 
 interface Props {
   label: string
@@ -9,12 +10,18 @@ interface Props {
 
 export function SettingRow({ label, hint, children }: Props) {
   return (
-    <div className="row" style={{ alignItems: 'flex-start' }}>
-      <label style={{ paddingTop: 4 }}>{label}</label>
-      <div style={{ flex: 1 }}>
+    <Group align="flex-start" gap="md" wrap="nowrap" my={4}>
+      <Text size="sm" w={160} c="gray.7" pt={6} style={{ flexShrink: 0 }}>
+        {label}
+      </Text>
+      <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
         {children}
-        {hint && <div style={{ fontSize: 11, color: '#6e6e73', marginTop: 4 }}>{hint}</div>}
-      </div>
-    </div>
+        {hint && (
+          <Text size="xs" c="dimmed">
+            {hint}
+          </Text>
+        )}
+      </Stack>
+    </Group>
   )
 }
