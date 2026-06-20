@@ -33,7 +33,13 @@
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
       "identity": null,
       "hardenedRuntime": false,
@@ -45,6 +51,10 @@
     }
   },
   "dependencies": {
+    "@mantine/core": "^7.17.8",
+    "@mantine/hooks": "^7.17.8",
+    "@tabler/icons-react": "^3.44.0",
+    "clsx": "^2.1.1",
     "electron-log": "^5.1.0",
     "electron-store": "^8.2.0",
     "react": "^18.3.0",
