@@ -4,8 +4,6 @@ import { ScrollArea, Stack, Text } from '@mantine/core'
 import type { ClipboardEntry, PickerInitPayload } from '@shared/types/clipboard-ipc'
 
 function previewOf(text: string, max = 110): string {
-  // Collapse runs of whitespace into a single space so each row stays
-  // single-line; truncate with ellipsis.
   const flat = text.replace(/\s+/g, ' ').trim()
   if (flat.length <= max) return flat
   return flat.slice(0, max - 1) + '…'
@@ -23,11 +21,13 @@ function relTime(ts: number): string {
 export function Picker() {
   const [entries, setEntries] = useState<ClipboardEntry[]>([])
   const [selected, setSelected] = useState(0)
+  /** Last entry the user pointed at — drives the right-hand preview pane.
+   *  Selection (number key / arrow) ALSO updates this so keyboard browsing
+   *  feels coherent with mouse browsing. */
+  const [previewId, setPreviewId] = useState<string | null>(null)
+
   const selectedRef = useRef(0)
   const entriesRef = useRef<ClipboardEntry[]>([])
-
-  // Keep refs in sync so the key handler (mounted once) always sees the
-  // latest state without having to rebuild the listener on every render.
   useEffect(() => { selectedRef.current = selected }, [selected])
   useEffect(() => { entriesRef.current = entries }, [entries])
 
@@ -36,13 +36,19 @@ export function Picker() {
       const payload = p as PickerInitPayload
       setEntries(payload.entries)
       setSelected(0)
+      setPreviewId(payload.entries[0]?.id ?? null)
     })
     window.mt.send(window.mt.CB_IPC.PickerReady)
     return () => { off() }
   }, [])
 
-  const pick = (id: string) => {
-    window.mt.send(window.mt.CB_IPC.Pick, { id })
+  const pick = (id: string) => window.mt.send(window.mt.CB_IPC.Pick, { id })
+
+  // Keyboard nav. Update both `selected` (highlight in list) and
+  // `previewId` (right-pane content) so keys drive the preview too.
+  const selectAt = (i: number) => {
+    setSelected(i)
+    setPreviewId(entriesRef.current[i]?.id ?? null)
   }
 
   useEffect(() => {
@@ -67,18 +73,20 @@ export function Picker() {
       }
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelected((s) => Math.min(list.length - 1, s + 1))
+        selectAt(Math.min(list.length - 1, sel + 1))
         return
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setSelected((s) => Math.max(0, s - 1))
+        selectAt(Math.max(0, sel - 1))
         return
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  const previewEntry = entries.find((e) => e.id === previewId) ?? null
 
   return (
     <div
@@ -103,7 +111,7 @@ export function Picker() {
       >
         <Text fw={600} size="sm">剪切板历史</Text>
         <Text c="dimmed" size="xs">
-          数字 1–9 直选 · ↑↓ Enter · Esc 取消
+          数字 1–9 直选 · ↑↓ Enter · Esc 取消 · 悬停看预览
         </Text>
       </div>
 
@@ -113,88 +121,163 @@ export function Picker() {
           <Text c="dimmed" size="xs">复制点东西后再回来</Text>
         </Stack>
       ) : (
-        <ScrollArea style={{ flex: 1 }} type="auto">
-          {entries.map((entry, idx) => {
-            const isActive = idx === selected
-            const numLabel = idx < 9 ? String(idx + 1) : '·'
-            return (
-              <div
-                key={entry.id}
-                onMouseEnter={() => setSelected(idx)}
-                onClick={() => pick(entry.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 14px',
-                  borderBottom: '1px solid #f4f4f4',
-                  background: isActive ? '#e7f5ff' : 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
+        <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+          {/* Left: list */}
+          <div style={{ width: 420, borderRight: '1px solid #eee', minWidth: 0 }}>
+            <ScrollArea style={{ height: '100%' }} type="auto">
+              {entries.map((entry, idx) => {
+                const isActive = idx === selected
+                const numLabel = idx < 9 ? String(idx + 1) : '·'
+                return (
+                  <div
+                    key={entry.id}
+                    onMouseEnter={() => { setSelected(idx); setPreviewId(entry.id) }}
+                    onClick={() => pick(entry.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 14px',
+                      borderBottom: '1px solid #f4f4f4',
+                      background: isActive ? '#e7f5ff' : 'transparent',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div
+                      style={{
+                        flex: '0 0 22px',
+                        height: 22,
+                        borderRadius: 4,
+                        background: isActive ? '#1c7ed6' : '#e9ecef',
+                        color: isActive ? 'white' : '#495057',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {numLabel}
+                    </div>
+                    {entry.kind === 'image' ? (
+                      <>
+                        <img
+                          src={entry.thumbDataUrl}
+                          alt=""
+                          draggable={false}
+                          style={{
+                            height: 36,
+                            width: 'auto',
+                            maxWidth: 80,
+                            objectFit: 'contain',
+                            borderRadius: 3,
+                            background: '#f8f9fa',
+                            border: '1px solid #dee2e6',
+                          }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text size="sm" c="dark">图片</Text>
+                          <Text size="xs" c="dimmed" mt={2}>
+                            {entry.width}×{entry.height} · {Math.round(entry.bytes / 1024)} KB · {relTime(entry.time)}
+                          </Text>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Text
+                          size="sm"
+                          style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            color: '#212529',
+                          }}
+                        >
+                          {previewOf(entry.text)}
+                        </Text>
+                        <Text size="xs" c="dimmed" mt={2}>
+                          {entry.text.length} 字符 · {relTime(entry.time)}
+                        </Text>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </ScrollArea>
+          </div>
+
+          {/* Right: preview pane */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              background: '#fafbfc',
+            }}
+          >
+            {previewEntry === null ? (
+              <Stack align="center" justify="center" style={{ flex: 1 }}>
+                <Text c="dimmed" size="xs">悬停或键盘选中查看预览</Text>
+              </Stack>
+            ) : previewEntry.kind === 'image' ? (
+              <>
                 <div
                   style={{
-                    flex: '0 0 22px',
-                    height: 22,
-                    borderRadius: 4,
-                    background: isActive ? '#1c7ed6' : '#e9ecef',
-                    color: isActive ? 'white' : '#495057',
+                    flex: 1,
+                    minHeight: 0,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 600,
+                    padding: 12,
                   }}
                 >
-                  {numLabel}
+                  <img
+                    src={previewEntry.previewDataUrl}
+                    alt=""
+                    draggable={false}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                      borderRadius: 4,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      background: 'white',
+                    }}
+                  />
                 </div>
-                {entry.kind === 'image' ? (
-                  <>
-                    <img
-                      src={entry.thumbDataUrl}
-                      alt=""
-                      draggable={false}
-                      style={{
-                        height: 36,
-                        width: 'auto',
-                        maxWidth: 80,
-                        objectFit: 'contain',
-                        borderRadius: 3,
-                        background: '#f8f9fa',
-                        border: '1px solid #dee2e6',
-                      }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Text size="sm" c="dark">
-                        图片
-                      </Text>
-                      <Text size="xs" c="dimmed" mt={2}>
-                        {entry.width}×{entry.height} · {Math.round(entry.bytes / 1024)} KB · {relTime(entry.time)}
-                      </Text>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text
-                      size="sm"
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        color: '#212529',
-                      }}
-                    >
-                      {previewOf(entry.text)}
-                    </Text>
-                    <Text size="xs" c="dimmed" mt={2}>
-                      {entry.text.length} 字符 · {relTime(entry.time)}
-                    </Text>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </ScrollArea>
+                <div style={{ padding: '6px 12px', borderTop: '1px solid #eee', textAlign: 'center' }}>
+                  <Text size="xs" c="dimmed">
+                    {previewEntry.width}×{previewEntry.height} · {Math.round(previewEntry.bytes / 1024)} KB
+                  </Text>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  style={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflow: 'auto',
+                    padding: 12,
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontSize: 12,
+                    lineHeight: 1.45,
+                    color: '#212529',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    userSelect: 'text',
+                  }}
+                >
+                  {previewEntry.text}
+                </div>
+                <div style={{ padding: '6px 12px', borderTop: '1px solid #eee', textAlign: 'center' }}>
+                  <Text size="xs" c="dimmed">{previewEntry.text.length} 字符</Text>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

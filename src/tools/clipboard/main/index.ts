@@ -34,6 +34,7 @@ const POLL_MS = 500
 const DEFAULT_MAX_QUEUE = 30
 const MAX_TEXT_BYTES = 256 * 1024
 const THUMB_HEIGHT = 56
+const PREVIEW_HEIGHT = 320
 
 interface InternalImageEntry extends ImageEntry {
   /** Kept main-side so we can paste it back without re-encoding. */
@@ -103,10 +104,15 @@ export async function initClipboardTool(ctx: ToolContext): Promise<void> {
       lastHash = h
       const size = img.getSize()
       const thumb = img.resize({ height: THUMB_HEIGHT, quality: 'better' })
+      // Don't upscale tiny images; clamp preview height to the source.
+      const preview = size.height > PREVIEW_HEIGHT
+        ? img.resize({ height: PREVIEW_HEIGHT, quality: 'better' })
+        : img
       const entry: InternalImageEntry = {
         id: nextId(),
         kind: 'image',
         thumbDataUrl: thumb.toDataURL(),
+        previewDataUrl: preview.toDataURL(),
         width: size.width,
         height: size.height,
         bytes: buf.length,

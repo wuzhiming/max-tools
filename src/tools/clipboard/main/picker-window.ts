@@ -12,8 +12,8 @@ import { CB_IPC, type ClipboardEntry } from '@shared/types/clipboard-ipc'
 
 const log = createLogger('clipboard.picker')
 
-const PICKER_W = 480
-const PICKER_H = 480
+const PICKER_W = 760
+const PICKER_H = 520
 
 let activeWin: BrowserWindow | null = null
 

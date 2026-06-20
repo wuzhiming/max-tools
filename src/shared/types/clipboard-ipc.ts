@@ -20,13 +20,16 @@ export interface TextEntry {
 }
 
 /** Image entry. The full image is kept main-side (data URL kept in memory)
- *  and only a tiny base64 thumbnail is shipped to the picker renderer to
- *  keep IPC payloads small. */
+ *  and only base64 thumbnails/previews are shipped to the picker renderer
+ *  to keep IPC payloads small. */
 export interface ImageEntry {
   id: string
   kind: 'image'
-  /** Base64 data URL of the thumbnail (small, ~40px tall) for picker display. */
+  /** Base64 data URL of the row thumbnail (~56px tall). */
   thumbDataUrl: string
+  /** Base64 data URL of the hover preview (~320px tall, or the original
+   *  size if the source image is smaller — never upscaled). */
+  previewDataUrl: string
   /** Pixel dims of the source image (for display only). */
   width: number
   height: number
