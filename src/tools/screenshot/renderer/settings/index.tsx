@@ -1,5 +1,6 @@
 // src/tools/screenshot/renderer/settings/index.tsx
 import React from 'react'
+import { NumberInput, SegmentedControl, Stack, TextInput, Title } from '@mantine/core'
 import type { ToolSettingsProps } from '@shared/types/tool-manifest'
 import { SettingRow } from '@renderer/shared/components/SettingRow'
 import { Toggle } from '@renderer/shared/components/Toggle'
@@ -21,8 +22,8 @@ export default function ScreenshotSettings({ toolId, shortcuts, setShortcut, toa
   const findShortcut = (key: string) => shortcuts.find((s) => s.key === key)?.combo ?? ''
 
   return (
-    <div>
-      <h1>截图</h1>
+    <Stack gap="md">
+      <Title order={3}>截图</Title>
 
       <SettingRow label="启用" hint="关闭后菜单栏与快捷键不可用">
         <Toggle checked={true} onChange={() => toast('暂不支持，所有工具默认启用', 'info')} />
@@ -33,11 +34,10 @@ export default function ScreenshotSettings({ toolId, shortcuts, setShortcut, toa
       </SettingRow>
 
       <SettingRow label="文件名模板" hint="支持 {yyyy} {MM} {dd} {HH} {mm} {ss}">
-        <input
-          type="text"
+        <TextInput
           value={template}
-          onChange={(e) => setTemplate(e.target.value)}
-          style={{ width: '100%' }}
+          onChange={(e) => setTemplate(e.currentTarget.value)}
+          size="xs"
         />
       </SettingRow>
 
@@ -46,32 +46,39 @@ export default function ScreenshotSettings({ toolId, shortcuts, setShortcut, toa
       </SettingRow>
 
       <SettingRow label="取色格式">
-        <select value={colorFormat} onChange={(e) => setColorFormat(e.target.value)}>
-          <option value="HEX">HEX</option>
-          <option value="RGB">RGB</option>
-          <option value="HSL">HSL</option>
-        </select>
-      </SettingRow>
-
-      <SettingRow label="默认马赛克块">
-        <input
-          type="number"
-          min={4}
-          max={64}
-          value={defaultBlockSize}
-          onChange={(e) => setDefaultBlockSize(Number(e.target.value))}
+        <SegmentedControl
+          size="xs"
+          data={['HEX', 'RGB', 'HSL']}
+          value={colorFormat}
+          onChange={setColorFormat}
         />
       </SettingRow>
 
-      <h2 style={{ marginTop: 24, fontSize: 14 }}>快捷键</h2>
+      <SettingRow label="默认马赛克块">
+        <NumberInput
+          min={4}
+          max={64}
+          value={defaultBlockSize}
+          onChange={(v) => setDefaultBlockSize(typeof v === 'number' ? v : Number(v) || 12)}
+          size="xs"
+          w={120}
+        />
+      </SettingRow>
+
+      <Title order={5} mt="lg">
+        快捷键
+      </Title>
 
       <SettingRow label="区域选区">
         <ShortcutRecorder value={findShortcut('region')} onChange={(c) => setShortcut('region', c)} />
       </SettingRow>
 
       <SettingRow label="全屏（鼠标所在屏）">
-        <ShortcutRecorder value={findShortcut('fullscreen')} onChange={(c) => setShortcut('fullscreen', c)} />
+        <ShortcutRecorder
+          value={findShortcut('fullscreen')}
+          onChange={(c) => setShortcut('fullscreen', c)}
+        />
       </SettingRow>
-    </div>
+    </Stack>
   )
 }
