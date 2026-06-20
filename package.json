@@ -45,13 +45,15 @@
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "notarize": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
         "NSScreenCaptureUsageDescription": "Max Tools 需要屏幕录制权限来截图。",
         "NSAccessibilityUsageDescription": "Max Tools 需要辅助功能权限：用于截图时的窗口几何识别，以及剪切板选择器粘贴时的键盘事件模拟。"
       }
-    }
+    },
+    "publish": null
   },
   "dependencies": {
     "@mantine/core": "^7.17.8",

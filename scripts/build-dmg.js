@@ -26,9 +26,16 @@ const { spawnSync } = require('node:child_process')
 
 const env = { ...process.env }
 
-// Identity mapping
+// Identity mapping. electron-builder wants the *name* portion only —
+// it picks the cert from the keychain itself. So if the user provided
+// the full codesign string ("Developer ID Application: Foo Bar (TEAMID)")
+// we strip the leading type prefix.
+const stripIdentityPrefix = (s) =>
+  s.replace(/^\s*(Developer ID Application|Mac Developer|Apple Development|Developer ID Installer|3rd Party Mac Developer Application|3rd Party Mac Developer Installer):\s*/i, '')
+
 if (!env.CSC_NAME && env.APPLE_DEVELOPER_ID) env.CSC_NAME = env.APPLE_DEVELOPER_ID
 if (!env.CSC_NAME && env.CODESIGN_IDENTITY) env.CSC_NAME = env.CODESIGN_IDENTITY
+if (env.CSC_NAME) env.CSC_NAME = stripIdentityPrefix(env.CSC_NAME)
 
 // Notarize password mapping
 if (!env.APPLE_APP_SPECIFIC_PASSWORD && env.APPLE_PASSWORD) {
