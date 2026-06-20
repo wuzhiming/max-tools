@@ -39,6 +39,7 @@ export default defineConfig({
           main_window: resolve('src/renderer/main-window/index.html'),
           screenshot_overlay: resolve('src/tools/screenshot/renderer/overlay/index.html'),
           screenshot_editor: resolve('src/tools/screenshot/renderer/editor/index.html'),
+          screenshot_toolbar: resolve('src/tools/screenshot/renderer/toolbar/index.html'),
         },
       },
     },
