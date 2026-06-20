@@ -1,10 +1,11 @@
 // src/tools/screenshot/main/index.ts
-import { app } from 'electron'
+import { app, screen } from 'electron'
 import { dirname, join } from 'node:path'
 import type { ToolContext } from '@shared/types/tool-manifest'
 import { showOverlays } from './overlay-controller'
 import { openEditor } from './editor-controller'
 import { captureFullscreenAtCursor } from './fullscreen'
+import { runScrollCapture } from './scroll-capture-controller'
 import { ensureScreenRecording, openPermissionPane } from '@main/permissions'
 import { imageToCss } from './dpi'
 
@@ -99,11 +100,70 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     })
   }
 
+  async function runScrollFlow(): Promise<void> {
+    ctx.log.info('runScrollFlow triggered')
+    if (!(await checkPermissionWithUserPrompt())) return
+    const sel = await showOverlays()
+    if (
+      sel.cancelled ||
+      !sel.region ||
+      !sel.displayBounds ||
+      sel.width == null ||
+      sel.height == null
+    ) {
+      return
+    }
+    const display = screen.getDisplayMatching(sel.displayBounds)
+    const dpr = display.scaleFactor
+    const cssRegion = imageToCss(sel.region, dpr)
+    // Translate the region (relative to its display) into global CSS screen coords
+    // — screencapture -R expects global coordinates.
+    const globalRegion = {
+      x: sel.displayBounds.x + cssRegion.x,
+      y: sel.displayBounds.y + cssRegion.y,
+      width: cssRegion.w,
+      height: cssRegion.h,
+    }
+    const allDisplays = screen.getAllDisplays()
+    const displayId = allDisplays.findIndex((d) => d.id === display.id)
+    const result = await runScrollCapture({
+      cssRegion: globalRegion,
+      displayId: displayId >= 0 ? displayId : 0,
+    })
+    if (result.cancelled || !result.outputPath || result.pixelWidth == null || result.pixelHeight == null) {
+      return
+    }
+    // For a tall stitched image the editor window should not balloon past
+    // the display; clamp height to ~80% of screen, the editor canvas will
+    // shrink-to-fit and the user still sees the full image.
+    const maxH = Math.round(display.workArea.height * 0.8)
+    const cssW = Math.round(result.pixelWidth / dpr)
+    const cssH = Math.round(result.pixelHeight / dpr)
+    const windowH = Math.min(cssH, maxH)
+    const windowBounds = {
+      x: globalRegion.x,
+      y: Math.max(display.workArea.y, globalRegion.y),
+      width: cssW,
+      height: windowH,
+    }
+    await openEditor({
+      imagePath: result.outputPath,
+      pixelWidth: result.pixelWidth,
+      pixelHeight: result.pixelHeight,
+      windowBounds,
+      filenameTemplate: getTemplate(),
+      resolveSaveDir: getSaveDir,
+      onSaved: rememberSaveDir,
+    })
+  }
+
   // 注册快捷键（store 中已保存的优先，否则用默认）
   const regionCombo =
     ctx.store.get<string>('shortcuts.region', '') || 'CommandOrControl+Shift+A'
   const fullscreenCombo =
     ctx.store.get<string>('shortcuts.fullscreen', '') || 'CommandOrControl+Shift+F'
+  const scrollCombo =
+    ctx.store.get<string>('shortcuts.scroll', '') || 'CommandOrControl+Shift+R'
 
   const r1 = await ctx.registerShortcut('region', regionCombo, () => {
     runRegionFlow().catch((e) => ctx.log.error(e))
@@ -114,4 +174,9 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
     runFullscreenFlow().catch((e) => ctx.log.error(e))
   })
   if (!r2.ok) ctx.log.warn('fullscreen shortcut registration failed:', r2.reason)
+
+  const r3 = await ctx.registerShortcut('scroll', scrollCombo, () => {
+    runScrollFlow().catch((e) => ctx.log.error(e))
+  })
+  if (!r3.ok) ctx.log.warn('scroll shortcut registration failed:', r3.reason)
 }

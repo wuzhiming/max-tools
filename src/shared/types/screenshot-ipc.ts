@@ -28,7 +28,21 @@ export const SS_IPC = {
   ToolbarSetPassthrough: 'toolbar/set-passthrough',
   /** editor → main：图像已绘制到画布，主进程可以 show() 窗口了 */
   EditorPainted: 'editor/painted',
+  /** main → scroll-control：捕获状态广播（已抓帧数等） */
+  ScrollStatus: 'scroll/status',
+  /** scroll-control → main：用户点完成，触发拼接 */
+  ScrollDone: 'scroll/done',
+  /** scroll-control → main：用户点取消 */
+  ScrollCancel: 'scroll/cancel',
+  /** scroll-control → main：控制窗口加载完成，可以接收初始状态 */
+  ScrollReady: 'scroll/ready',
 } as const
+
+export interface ScrollStatusPayload {
+  framesCaptured: number
+  /** UI 状态，决定按钮文案 */
+  phase: 'capturing' | 'stitching'
+}
 
 export interface OverlayInitPayload {
   imagePath: string
