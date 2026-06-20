@@ -47,7 +47,10 @@ export function Editor() {
     if (state.activeTool === 'select') {
       const hit = hitTest(state.history.current, x, y)
       dispatch({ type: 'SELECT_LAYER', id: hit?.id ?? null })
-      if (hit) selectDragRef.current = { id: hit.id, startX: x, startY: y, origin: hit }
+      if (hit) {
+        selectDragRef.current = { id: hit.id, startX: x, startY: y, origin: hit }
+        dispatch({ type: 'BEGIN_DRAG' })
+      }
       return
     }
     if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
@@ -143,20 +146,20 @@ export function Editor() {
       const o = selectDragRef.current.origin
       if (o.type === 'rect' || o.type === 'ellipse') {
         dispatch({
-          type: 'UPDATE_LAYER',
+          type: 'UPDATE_LAYER_DRAFT',
           id: o.id,
           patch: { bounds: { ...o.bounds, x: o.bounds.x + dx, y: o.bounds.y + dy } },
         })
       } else if (o.type === 'text') {
         dispatch({
-          type: 'UPDATE_LAYER',
+          type: 'UPDATE_LAYER_DRAFT',
           id: o.id,
           patch: { pos: { x: o.pos.x + dx, y: o.pos.y + dy } },
         })
       } else if ((o.type === 'mosaic' || o.type === 'blur') && o.region.kind === 'rect') {
         const b = o.region.bounds
         dispatch({
-          type: 'UPDATE_LAYER',
+          type: 'UPDATE_LAYER_DRAFT',
           id: o.id,
           patch: { region: { kind: 'rect', bounds: { ...b, x: b.x + dx, y: b.y + dy } } } as Partial<Layer>,
         })
@@ -167,18 +170,18 @@ export function Editor() {
     const s = dragRef.current
     if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
       const bounds: Rect = { x: s.startX, y: s.startY, w: x - s.startX, h: y - s.startY }
-      dispatch({ type: 'UPDATE_LAYER', id: s.tempId, patch: { bounds } })
+      dispatch({ type: 'UPDATE_LAYER_DRAFT', id: s.tempId, patch: { bounds } })
       return
     }
     if (state.activeTool === 'arrow') {
-      dispatch({ type: 'UPDATE_LAYER', id: s.tempId, patch: { to: { x, y } } })
+      dispatch({ type: 'UPDATE_LAYER_DRAFT', id: s.tempId, patch: { to: { x, y } } })
       return
     }
     if (state.activeTool === 'pen') {
       const current = state.history.current.find((l) => l.id === s.tempId)
       if (current && current.type === 'pen') {
         dispatch({
-          type: 'UPDATE_LAYER',
+          type: 'UPDATE_LAYER_DRAFT',
           id: current.id,
           patch: { points: [...current.points, { x, y }] },
         })
@@ -189,7 +192,7 @@ export function Editor() {
       const cur = state.history.current.find((l) => l.id === s.tempId)
       if (cur && (cur.type === 'mosaic' || cur.type === 'blur') && cur.region.kind === 'pen') {
         dispatch({
-          type: 'UPDATE_LAYER',
+          type: 'UPDATE_LAYER_DRAFT',
           id: cur.id,
           patch: {
             region: { ...cur.region, points: [...cur.region.points, { x, y }] },

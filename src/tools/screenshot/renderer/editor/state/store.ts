@@ -19,11 +19,13 @@ export interface EditorState {
 
 type Action =
   | { type: 'ADD_LAYER'; layer: Layer }
+  | { type: 'UPDATE_LAYER_DRAFT'; id: string; patch: Partial<Layer> }
   | { type: 'UPDATE_LAYER'; id: string; patch: Partial<Layer> }
   | { type: 'DELETE_LAYER'; id: string }
   | { type: 'SELECT_LAYER'; id: string | null }
   | { type: 'SET_TOOL'; tool: ToolKind }
   | { type: 'SET_STYLE'; patch: Partial<EditorState['style']> }
+  | { type: 'BEGIN_DRAG' }
   | { type: 'UNDO' }
   | { type: 'REDO' }
 
@@ -34,6 +36,15 @@ function reducer(state: EditorState, action: Action): EditorState {
         ...state,
         history: pushSnapshot(state.history, [...state.history.current, action.layer]),
         selectedLayerId: action.layer.id,
+      }
+    case 'UPDATE_LAYER_DRAFT':
+      // Mutate current without snapshotting — used during drag operations
+      return {
+        ...state,
+        history: {
+          ...state.history,
+          current: state.history.current.map((l) => (l.id === action.id ? ({ ...l, ...action.patch } as Layer) : l)),
+        },
       }
     case 'UPDATE_LAYER':
       return {
@@ -55,6 +66,10 @@ function reducer(state: EditorState, action: Action): EditorState {
       return { ...state, activeTool: action.tool, selectedLayerId: null }
     case 'SET_STYLE':
       return { ...state, style: { ...state.style, ...action.patch } }
+    case 'BEGIN_DRAG':
+      // Snapshot current layers before a drag mutation starts (used for selectDrag).
+      // ADD_LAYER drags (rect/ellipse/etc.) don't need this — ADD_LAYER already snapshots.
+      return { ...state, history: pushSnapshot(state.history, state.history.current) }
     case 'UNDO':
       return { ...state, history: undo(state.history), selectedLayerId: null }
     case 'REDO':
