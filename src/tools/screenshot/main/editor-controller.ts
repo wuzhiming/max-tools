@@ -184,17 +184,29 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   ) => {
     try {
       const { dialog } = await import('electron')
-      // Resolve the directory at *save time* so the user's previous save
-      // (this session or persisted from earlier ones) is reflected immediately.
       const dir = args.resolveSaveDir()
       const defaultPath = join(dir, payload.filename)
-      const r = await dialog.showSaveDialog(win, {
-        defaultPath,
-        filters: [
-          { name: 'PNG', extensions: ['png'] },
-          { name: 'JPEG', extensions: ['jpg'] },
-        ],
-      })
+      // The floating toolbar is its own alwaysOnTop window and would
+      // otherwise sit on top of the save dialog. Hide it while the dialog
+      // is open and restore in a finally so cancel + error paths both
+      // re-show it.
+      const toolbarWasVisible =
+        !!(activeToolbar && !activeToolbar.isDestroyed() && activeToolbar.isVisible())
+      if (toolbarWasVisible) activeToolbar!.hide()
+      let r
+      try {
+        r = await dialog.showSaveDialog(win, {
+          defaultPath,
+          filters: [
+            { name: 'PNG', extensions: ['png'] },
+            { name: 'JPEG', extensions: ['jpg'] },
+          ],
+        })
+      } finally {
+        if (toolbarWasVisible && activeToolbar && !activeToolbar.isDestroyed()) {
+          activeToolbar.show()
+        }
+      }
       if (r.canceled || !r.filePath) return
       await mkdir(dirname(r.filePath), { recursive: true })
       const buf = Buffer.from(payload.dataUrl.split(',')[1], 'base64')
