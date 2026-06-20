@@ -24,6 +24,8 @@ export const SS_IPC = {
   ToolbarAction: 'toolbar/action',
   /** editor → main → toolbar：editor 状态广播（撤销/重做可用性） */
   EditorStatus: 'editor/status',
+  /** toolbar → main：根据光标位置切换工具栏窗口的点击穿透 */
+  ToolbarSetPassthrough: 'toolbar/set-passthrough',
 } as const
 
 export interface OverlayInitPayload {

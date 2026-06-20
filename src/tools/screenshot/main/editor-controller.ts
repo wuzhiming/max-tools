@@ -25,22 +25,29 @@ export interface OpenEditorArgs {
   filenameTemplate: string
 }
 
-const TOOLBAR_W = 560
-const TOOLBAR_H = 64
+// The toolbar window is much larger than the visible pill: extra transparent
+// padding above and below gives Mantine popovers / menus / tooltips room to
+// render without being clipped at the window edge. Click-through keeps the
+// padding from blocking interaction with windows underneath.
+const TOOLBAR_W = 600
+const TOOLBAR_PILL_H = 48
+const TOOLBAR_VPAD = 140
+const TOOLBAR_H = TOOLBAR_PILL_H + TOOLBAR_VPAD * 2
 const TOOLBAR_GAP = 8
 
 function computeToolbarPosition(editorBounds: Electron.Rectangle): { x: number; y: number } {
   const display = screen.getDisplayMatching(editorBounds)
   const db = display.bounds
   let tx = editorBounds.x + Math.round(editorBounds.width / 2 - TOOLBAR_W / 2)
-  let ty = editorBounds.y + editorBounds.height + TOOLBAR_GAP
-  // flip above if off-screen-bottom
-  if (ty + TOOLBAR_H > db.y + db.height) {
-    ty = editorBounds.y - TOOLBAR_H - TOOLBAR_GAP
+  // We want the *visible pill* (centered in the window) to sit `GAP` below the
+  // editor. Window top therefore lifts up by TOOLBAR_VPAD.
+  let ty = editorBounds.y + editorBounds.height + TOOLBAR_GAP - TOOLBAR_VPAD
+  const pillBottom = ty + TOOLBAR_VPAD + TOOLBAR_PILL_H
+  if (pillBottom > db.y + db.height) {
+    // Flip so the pill sits `GAP` above the editor.
+    ty = editorBounds.y - TOOLBAR_GAP - TOOLBAR_PILL_H - TOOLBAR_VPAD
   }
-  // clamp y to screen too (very tall editor that already spans the display)
-  if (ty < db.y + 4) ty = db.y + 4
-  // clamp x
+  // clamp x to display
   tx = Math.max(db.x + 4, Math.min(tx, db.x + db.width - TOOLBAR_W - 4))
   return { x: tx, y: ty }
 }
@@ -114,6 +121,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     skipTaskbar: true,
     resizable: false,
     focusable: true,
+    enableLargerThanScreen: true,
     backgroundColor: '#00000000',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -124,6 +132,8 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   })
   activeToolbar = toolbarWin
   toolbarWin.setAlwaysOnTop(true, 'screen-saver')
+  // Start fully passthrough — renderer toggles this off when cursor enters the pill.
+  toolbarWin.setIgnoreMouseEvents(true, { forward: true })
 
   const toolbarUrl = process.env['ELECTRON_RENDERER_URL']
     ? `${process.env['ELECTRON_RENDERER_URL']}/src/tools/screenshot/renderer/toolbar/index.html`
@@ -210,6 +220,10 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     if (!activeToolbar || activeToolbar.isDestroyed()) return
     activeToolbar.webContents.send(SS_IPC.EditorStatus, status)
   }
+  const onToolbarSetPassthrough = (_e: Electron.IpcMainEvent, passthrough: boolean) => {
+    if (!activeToolbar || activeToolbar.isDestroyed()) return
+    activeToolbar.setIgnoreMouseEvents(!!passthrough, { forward: true })
+  }
 
   ipcMain.on(SS_IPC.EditorComplete, onComplete)
   ipcMain.on(SS_IPC.EditorSaveAs, onSaveAs)
@@ -217,6 +231,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
   ipcMain.on(SS_IPC.ToolbarReady, onToolbarReady)
   ipcMain.on(SS_IPC.ToolbarAction, onToolbarAction)
   ipcMain.on(SS_IPC.EditorStatus, onEditorStatus)
+  ipcMain.on(SS_IPC.ToolbarSetPassthrough, onToolbarSetPassthrough)
 
   const closeEditor = () => {
     if (activeEditor && !activeEditor.isDestroyed()) activeEditor.close()
@@ -229,6 +244,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
     ipcMain.off(SS_IPC.ToolbarReady, onToolbarReady)
     ipcMain.off(SS_IPC.ToolbarAction, onToolbarAction)
     ipcMain.off(SS_IPC.EditorStatus, onEditorStatus)
+    ipcMain.off(SS_IPC.ToolbarSetPassthrough, onToolbarSetPassthrough)
   }
 
   win.on('closed', closeEditor)

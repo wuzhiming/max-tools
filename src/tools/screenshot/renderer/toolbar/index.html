@@ -4,18 +4,29 @@
     <meta charset="UTF-8" />
     <title>Toolbar</title>
     <style>
-      html, body {
+      /*
+       * The window is much larger than the visible pill (extra transparent
+       * room so Mantine popovers/menus/tooltips never clip at the edge).
+       * Override Mantine's body-bg variable so the chrome stays transparent.
+       */
+      html, body, #root {
         margin: 0;
-        padding: 8px;
+        padding: 0;
         width: 100vw;
         height: 100vh;
-        background: transparent;
-        overflow: hidden;
+        background: transparent !important;
+        background-color: transparent !important;
+        --mantine-color-body: transparent;
+        overflow: visible;
         user-select: none;
         -webkit-user-select: none;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
-      #root { width: 100%; height: 100%; }
+      #root {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
     </style>
   </head>
   <body>
