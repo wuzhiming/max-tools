@@ -23,6 +23,8 @@ export interface OpenEditorArgs {
   /** 默认保存目录与文件名模板（用于另存为） */
   saveDir: string
   filenameTemplate: string
+  /** 用户完成一次另存为后回调，参数是实际保存到的完整路径 */
+  onSaved?: (savedPath: string) => void
 }
 
 // The toolbar window is much larger than the visible pill: extra transparent
@@ -193,6 +195,7 @@ export async function openEditor(args: OpenEditorArgs): Promise<void> {
       const buf = Buffer.from(payload.dataUrl.split(',')[1], 'base64')
       await writeFile(r.filePath, buf)
       log.info('editor result saved to', r.filePath)
+      args.onSaved?.(r.filePath)
     } catch (err) {
       log.error('save-as failed', err)
     }

@@ -1,6 +1,6 @@
 // src/tools/screenshot/main/index.ts
 import { app } from 'electron'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import type { ToolContext } from '@shared/types/tool-manifest'
 import { showOverlays } from './overlay-controller'
 import { openEditor } from './editor-controller'
@@ -15,10 +15,19 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
   const defaultTemplate = 'screenshot-{yyyy}-{MM}-{dd}-{HH}-{mm}-{ss}'
 
   function getSaveDir(): string {
-    return ctx.store.get<string>('saveDir', '') || defaultSaveDir
+    // Prefer the directory the user last saved into, fall back to the
+    // user-configured saveDir setting, then the built-in default.
+    return (
+      ctx.store.get<string>('lastSaveDir', '') ||
+      ctx.store.get<string>('saveDir', '') ||
+      defaultSaveDir
+    )
   }
   function getTemplate(): string {
     return ctx.store.get<string>('filenameTemplate', '') || defaultTemplate
+  }
+  function rememberSaveDir(savedPath: string): void {
+    ctx.store.set('lastSaveDir', dirname(savedPath))
   }
 
   async function checkPermissionWithUserPrompt(): Promise<boolean> {
@@ -70,6 +79,7 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
       },
       saveDir: getSaveDir(),
       filenameTemplate: getTemplate(),
+      onSaved: rememberSaveDir,
     })
   }
 
@@ -85,6 +95,7 @@ export async function initScreenshotTool(ctx: ToolContext): Promise<void> {
       windowBounds: r.displayBounds,
       saveDir: getSaveDir(),
       filenameTemplate: getTemplate(),
+      onSaved: rememberSaveDir,
     })
   }
 

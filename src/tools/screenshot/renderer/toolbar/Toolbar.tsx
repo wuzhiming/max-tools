@@ -201,7 +201,7 @@ export function Toolbar() {
 
       <NumberInput
         size="xs"
-        w={84}
+        w={62}
         value={strokeWidth}
         onChange={(v) => {
           const n = typeof v === 'number' ? v : Number(v)

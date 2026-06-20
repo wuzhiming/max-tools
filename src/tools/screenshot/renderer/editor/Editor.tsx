@@ -170,6 +170,11 @@ export function Editor() {
       return
     }
     if (state.activeTool === 'text') {
+      // If a text edit is already open, ignore the second click — the
+      // textarea will lose focus, trigger onBlur → commit at the ORIGINAL
+      // position. Replacing textPos here first would race the commit and
+      // make the text land at the second click.
+      if (textPos) return
       setTextPos({ canvasX: x, canvasY: y, cssX: e.clientX, cssY: e.clientY })
       return
     }
