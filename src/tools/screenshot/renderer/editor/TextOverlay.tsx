@@ -14,14 +14,33 @@ interface Props {
 export function TextOverlay({ x, y, fontSize, color, fontFamily, onCommit, onCancel }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
-    ref.current?.focus()
+    const id = setTimeout(() => ref.current?.focus(), 0)
+    return () => clearTimeout(id)
   }, [])
   return (
     <textarea
       ref={ref}
-      className="text-edit-input"
-      style={{ position: 'fixed', left: x, top: y, fontSize, color, fontFamily, zIndex: 9999 }}
+      placeholder="输入文字，Cmd+Enter 提交，Esc 取消"
+      style={{
+        position: 'fixed',
+        left: x,
+        top: y,
+        zIndex: 9999,
+        minWidth: 160,
+        minHeight: Math.max(28, fontSize * 1.6),
+        padding: '4px 8px',
+        fontSize,
+        color,
+        fontFamily,
+        background: 'rgba(0, 0, 0, 0.65)',
+        border: '1px dashed rgba(255,255,255,0.8)',
+        borderRadius: 4,
+        outline: 'none',
+        resize: 'both',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+      }}
       onKeyDown={(e) => {
+        e.stopPropagation()
         if (e.key === 'Escape') {
           e.preventDefault()
           onCancel()
