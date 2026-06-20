@@ -64,6 +64,7 @@ export function Toolbar() {
   const [activeTool, setActiveTool] = useState<ToolKind>('rect')
   const [color, setColor] = useState('#FF3B30')
   const [strokeWidth, setStrokeWidth] = useState(6)
+  const [fontSize, setFontSize] = useState(24)
   const [blurMode, setBlurMode] = useState<'mosaic' | 'gaussian'>('mosaic')
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
@@ -201,26 +202,51 @@ export function Toolbar() {
         </Popover.Dropdown>
       </Popover>
 
-      <NumberInput
-        size="xs"
-        w={62}
-        value={strokeWidth}
-        onChange={(v) => {
-          const n = typeof v === 'number' ? v : Number(v)
-          if (Number.isFinite(n) && n > 0) {
-            setStrokeWidth(n)
-            setStyle({ strokeWidth: n })
-          }
-        }}
-        min={1}
-        max={100}
-        step={1}
-        clampBehavior="strict"
-        allowDecimal={false}
-        allowNegative={false}
-        suffix="px"
-        aria-label="线宽"
-      />
+      {/* Context-aware NumberInput: shows fontSize when text tool is active,
+          strokeWidth otherwise. One slot, the meaning follows the current tool. */}
+      {activeTool === 'text' ? (
+        <NumberInput
+          size="xs"
+          w={68}
+          value={fontSize}
+          onChange={(v) => {
+            const n = typeof v === 'number' ? v : Number(v)
+            if (Number.isFinite(n) && n > 0) {
+              setFontSize(n)
+              setStyle({ fontSize: n })
+            }
+          }}
+          min={6}
+          max={200}
+          step={1}
+          clampBehavior="strict"
+          allowDecimal={false}
+          allowNegative={false}
+          suffix="px"
+          aria-label="字号"
+        />
+      ) : (
+        <NumberInput
+          size="xs"
+          w={62}
+          value={strokeWidth}
+          onChange={(v) => {
+            const n = typeof v === 'number' ? v : Number(v)
+            if (Number.isFinite(n) && n > 0) {
+              setStrokeWidth(n)
+              setStyle({ strokeWidth: n })
+            }
+          }}
+          min={1}
+          max={100}
+          step={1}
+          clampBehavior="strict"
+          allowDecimal={false}
+          allowNegative={false}
+          suffix="px"
+          aria-label="线宽"
+        />
+      )}
 
       <Divider orientation="vertical" my={6} />
 
