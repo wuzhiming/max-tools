@@ -9,16 +9,26 @@ import { showMainWindow } from './main-window'
 let tray: Tray | null = null
 
 async function buildTrayIcon(): Promise<Electron.NativeImage> {
-  // 16x16 black template (alpha for negative space). macOS will invert in dark mode.
+  // Black-on-transparent "M+" glyph — same mark as the app icon but
+  // without the squircle. Marked as template so macOS auto-inverts for
+  // dark/light menu bar themes. We supply 16px + @2x 32px reps so it
+  // stays crisp on retina displays.
+  //
+  // Keep this in sync with build/icon.svg if the mark is redesigned.
   const svg = Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-      <rect x="2" y="4" width="12" height="9" rx="2" fill="black"/>
-      <circle cx="8" cy="9" r="2.5" fill="white"/>
-      <rect x="6" y="2.5" width="4" height="2" rx="0.5" fill="black"/>
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+      <g stroke="black" stroke-linecap="round" fill="none">
+        <line x1="14" y1="16" x2="14" y2="48" stroke-width="10"/>
+        <line x1="50" y1="16" x2="50" y2="48" stroke-width="10"/>
+        <line x1="24" y1="32" x2="40" y2="32" stroke-width="8"/>
+        <line x1="32" y1="24" x2="32" y2="40" stroke-width="8"/>
+      </g>
     </svg>`,
   )
-  const png = await sharp(svg).png().toBuffer()
-  const img = nativeImage.createFromBuffer(png)
+  const buf16 = await sharp(svg).resize(16, 16).png().toBuffer()
+  const buf32 = await sharp(svg).resize(32, 32).png().toBuffer()
+  const img = nativeImage.createFromBuffer(buf16, { scaleFactor: 1.0 })
+  img.addRepresentation({ scaleFactor: 2.0, width: 32, height: 32, buffer: buf32 })
   img.setTemplateImage(true)
   return img
 }

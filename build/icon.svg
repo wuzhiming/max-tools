@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!--
+    Max Tools app icon.
+    Squircle background with macOS-system-style blue→purple gradient.
+    Overlaid "M+" mark: two pillars of the M plus a centered plus sign
+    (the plus suggests "extensible / add more tools").
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#007aff"/>
+      <stop offset="100%" stop-color="#5856d6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"/>
+
+  <g stroke="#ffffff" stroke-linecap="round" fill="none">
+    <!-- M pillars -->
+    <line x1="304" y1="320" x2="304" y2="720" stroke-width="104"/>
+    <line x1="720" y1="320" x2="720" y2="720" stroke-width="104"/>
+
+    <!-- centered plus -->
+    <line x1="442" y1="520" x2="582" y2="520" stroke-width="80"/>
+    <line x1="512" y1="450" x2="512" y2="590" stroke-width="80"/>
+  </g>
+</svg>

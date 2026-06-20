@@ -10,6 +10,7 @@
     "package": "electron-vite build && electron-builder --mac",
     "package:dir": "electron-vite build && electron-builder --mac --dir",
     "package:dmg": "node scripts/build-dmg.js",
+    "icon:gen": "node scripts/gen-icon.js",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -34,6 +35,7 @@
     "afterSign": "scripts/notarize.js",
     "mac": {
       "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
       "target": [
         {
           "target": "dmg",
