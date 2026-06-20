@@ -12,6 +12,7 @@ const settingsViewLoaders: Record<
   () => Promise<{ default: React.ComponentType<ToolSettingsProps> }>
 > = {
   screenshot: () => import('@tools/screenshot/renderer/settings/index'),
+  clipboard: () => import('@tools/clipboard/renderer/settings/index'),
 }
 
 export function ToolHostPage({ toolId }: Props) {

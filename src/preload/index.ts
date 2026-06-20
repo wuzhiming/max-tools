@@ -2,6 +2,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '@shared/types/ipc'
 import { SS_IPC } from '@shared/types/screenshot-ipc'
+import { CB_IPC } from '@shared/types/clipboard-ipc'
 
 const api = {
   invoke: (channel: string, payload?: unknown) => ipcRenderer.invoke(channel, payload),
@@ -13,6 +14,7 @@ const api = {
   },
   IPC,
   SS_IPC,
+  CB_IPC,
 }
 
 contextBridge.exposeInMainWorld('mt', api)

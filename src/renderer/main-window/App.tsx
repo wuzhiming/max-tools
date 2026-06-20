@@ -4,6 +4,7 @@ import { Alert, Button, NavLink, ScrollArea, Stack, Text } from '@mantine/core'
 import {
   IconAlertTriangle,
   IconCamera,
+  IconClipboard,
   IconInfoCircle,
   IconSettings,
   IconTool,
@@ -33,6 +34,7 @@ function parseRoute(path: string): Route {
 
 function toolIcon(id: string) {
   if (id === 'screenshot') return <IconCamera size={16} />
+  if (id === 'clipboard') return <IconClipboard size={16} />
   return <IconTool size={16} />
 }
 

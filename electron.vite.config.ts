@@ -41,6 +41,7 @@ export default defineConfig({
           screenshot_editor: resolve('src/tools/screenshot/renderer/editor/index.html'),
           screenshot_toolbar: resolve('src/tools/screenshot/renderer/toolbar/index.html'),
           screenshot_scroll_control: resolve('src/tools/screenshot/renderer/scroll-control/index.html'),
+          clipboard_picker: resolve('src/tools/clipboard/renderer/picker/index.html'),
         },
       },
     },

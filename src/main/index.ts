@@ -69,6 +69,7 @@ app.whenReady().then(async () => {
   await loadTools({
     manifestLoaders: [
       async () => (await import('@tools/screenshot/manifest')).screenshotManifest,
+      async () => (await import('@tools/clipboard/manifest')).clipboardManifest,
     ],
   })
   await createTray()
