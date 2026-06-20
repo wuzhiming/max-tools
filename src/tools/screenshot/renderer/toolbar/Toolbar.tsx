@@ -12,7 +12,6 @@ import {
   Tooltip,
 } from '@mantine/core'
 import {
-  IconArrowAutofitDown,
   IconArrowBackUp,
   IconArrowForwardUp,
   IconArrowUpRight,
@@ -176,21 +175,11 @@ export function Toolbar() {
 
       <Divider orientation="vertical" my={6} />
 
-      {/* Long screenshot — closes this editor, starts scroll capture of the
-          same region, reopens editor with the stitched image. */}
-      <Tooltip label="长截图（滚动拼接）" position="bottom" withArrow>
-        <ActionIcon
-          variant="subtle"
-          color="gray"
-          size="lg"
-          aria-label="长截图"
-          onClick={() => send({ kind: 'START_SCROLL' })}
-        >
-          <IconArrowAutofitDown size={ICON_SIZE} />
-        </ActionIcon>
-      </Tooltip>
-
-      <Divider orientation="vertical" my={6} />
+      {/* Long-screenshot button intentionally hidden — feature is built end
+          to end (Toolbar → START_SCROLL → editor controller → scroll capture
+          → stitch) but the stitch quality isn't good enough to expose yet.
+          Re-add a Tooltip+ActionIcon here that sends { kind: 'START_SCROLL' }
+          when the algorithm is ready. */}
 
       {/* color + stroke group */}
       <Popover position="bottom" shadow="md" withArrow>
