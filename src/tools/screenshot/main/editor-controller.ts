@@ -33,7 +33,7 @@ export interface OpenEditorArgs {
 // padding from blocking interaction with windows underneath.
 const TOOLBAR_W = 600
 const TOOLBAR_PILL_H = 48
-const TOOLBAR_VPAD = 140
+const TOOLBAR_VPAD = 220
 const TOOLBAR_H = TOOLBAR_PILL_H + TOOLBAR_VPAD * 2
 const TOOLBAR_GAP = 8
 

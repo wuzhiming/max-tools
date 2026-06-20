@@ -188,12 +188,14 @@ export function Toolbar() {
         </Popover.Target>
         <Popover.Dropdown p="xs">
           <ColorPicker
+            size="xs"
             value={color}
             onChange={(c) => {
               setColor(c)
               setStyle({ color: c })
             }}
             swatches={PRESETS}
+            swatchesPerRow={8}
             format="hex"
           />
         </Popover.Dropdown>
