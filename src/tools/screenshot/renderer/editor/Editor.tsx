@@ -32,6 +32,7 @@ export function Editor() {
   const selectDragRef = useRef<{ id: string; startX: number; startY: number; origin: Layer } | null>(null)
   const [textPos, setTextPos] = useState<{ canvasX: number; canvasY: number; cssX: number; cssY: number } | null>(null)
   const [canvasDims, setCanvasDims] = useState<CanvasDims | null>(null)
+  const [isMouseDragging, setIsMouseDragging] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -81,12 +82,14 @@ export function Editor() {
       if (hit) {
         selectDragRef.current = { id: hit.id, startX: x, startY: y, origin: hit }
         dispatch({ type: 'BEGIN_DRAG' })
+        setIsMouseDragging(true)
       }
       return
     }
     if (state.activeTool === 'rect' || state.activeTool === 'ellipse') {
       const id = newLayerId()
       dragRef.current = { startX: x, startY: y, tempId: id }
+      setIsMouseDragging(true)
       const baseLayer =
         state.activeTool === 'rect'
           ? {
@@ -109,6 +112,7 @@ export function Editor() {
     if (state.activeTool === 'arrow') {
       const id = newLayerId()
       dragRef.current = { startX: x, startY: y, tempId: id }
+      setIsMouseDragging(true)
       dispatch({
         type: 'ADD_LAYER',
         layer: {
@@ -125,6 +129,7 @@ export function Editor() {
     if (state.activeTool === 'pen') {
       const id = newLayerId()
       dragRef.current = { startX: x, startY: y, tempId: id }
+      setIsMouseDragging(true)
       dispatch({
         type: 'ADD_LAYER',
         layer: {
@@ -144,6 +149,7 @@ export function Editor() {
     if (state.activeTool === 'blur') {
       const id = newLayerId()
       dragRef.current = { startX: x, startY: y, tempId: id }
+      setIsMouseDragging(true)
       const radius = state.style.blockSize * 2
       if (state.style.blurMode === 'gaussian') {
         dispatch({
@@ -246,7 +252,23 @@ export function Editor() {
   function onUp() {
     dragRef.current = null
     selectDragRef.current = null
+    setIsMouseDragging(false)
   }
+
+  // A window-level mouseup guarantees the create-drag releases even when the
+  // pointer is sitting on top of a SelectionOverlay handle (handles use
+  // stopPropagation, so the canvas-level mouseup would otherwise be eaten).
+  useEffect(() => {
+    const onWinUp = () => {
+      if (dragRef.current || selectDragRef.current) {
+        dragRef.current = null
+        selectDragRef.current = null
+        setIsMouseDragging(false)
+      }
+    }
+    window.addEventListener('mouseup', onWinUp)
+    return () => window.removeEventListener('mouseup', onWinUp)
+  }, [])
 
   function exportCanvas(): string | null {
     const cvs = document.querySelector('canvas.editor-canvas') as HTMLCanvasElement | null
@@ -391,7 +413,7 @@ export function Editor() {
             onCancel={() => setTextPos(null)}
           />
         )}
-        {selectedLayer && canvasDims && (
+        {selectedLayer && canvasDims && !isMouseDragging && (
           <SelectionOverlay
             layer={selectedLayer}
             canvasDims={canvasDims}

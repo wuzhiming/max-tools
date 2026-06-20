@@ -7,8 +7,8 @@ import {
   Divider,
   Group,
   Menu,
+  NumberInput,
   Popover,
-  Select,
   Tooltip,
 } from '@mantine/core'
 import {
@@ -199,23 +199,24 @@ export function Toolbar() {
         </Popover.Dropdown>
       </Popover>
 
-      <Select
+      <NumberInput
         size="xs"
-        w={72}
-        data={['1', '2', '3', '5', '8', '12'].map((v) => ({
-          value: v,
-          label: `${v}px`,
-        }))}
-        value={String(strokeWidth)}
+        w={84}
+        value={strokeWidth}
         onChange={(v) => {
-          if (v) {
-            const n = Number(v)
+          const n = typeof v === 'number' ? v : Number(v)
+          if (Number.isFinite(n) && n > 0) {
             setStrokeWidth(n)
             setStyle({ strokeWidth: n })
           }
         }}
-        allowDeselect={false}
-        withCheckIcon={false}
+        min={1}
+        max={100}
+        step={1}
+        clampBehavior="strict"
+        allowDecimal={false}
+        allowNegative={false}
+        suffix="px"
         aria-label="线宽"
       />
 
