@@ -2,7 +2,6 @@
 import React from 'react'
 import {
   ActionIcon,
-  Button,
   ColorPicker,
   ColorSwatch,
   Divider,
@@ -208,24 +207,27 @@ export function Toolbar(p: Props) {
 
         <div style={{ flex: 1 }} />
 
-        <Button.Group>
-          <Button
+        <Tooltip label="另存为" position="top" withArrow>
+          <ActionIcon
             variant="default"
-            size="xs"
-            leftSection={<IconDeviceFloppy size={14} />}
+            size="lg"
             onClick={p.onSaveAs}
+            aria-label="另存为"
           >
-            另存为
-          </Button>
-          <Button
+            <IconDeviceFloppy size={ICON_SIZE} />
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label="完成" position="top" withArrow>
+          <ActionIcon
+            variant="filled"
             color="blue"
-            size="xs"
-            leftSection={<IconCheck size={14} />}
+            size="lg"
             onClick={p.onComplete}
+            aria-label="完成"
           >
-            完成
-          </Button>
-        </Button.Group>
+            <IconCheck size={ICON_SIZE} />
+          </ActionIcon>
+        </Tooltip>
       </Group>
     </div>
   )
